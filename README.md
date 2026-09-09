@@ -45,15 +45,21 @@ DarkGPT Lite is a specialized CLI tool providing unrestricted conversations with
    cd DarkGPT-Lite
    ```
 
-2. Run the script:
-   ```bash
-   python darkgpt.py
-   ```
+2. Run the application:
+   - **On macOS/Linux**: Run the provided starter script:
+     ```bash
+     chmod +x start.command
+     ./start.command
+     ```
+   - **Alternative**: You can also run it directly with Python:
+     ```bash
+     python3 darkgpt.py
+     ```
 
 3. DarkGPT Lite will:
    - Automatically create a virtual environment
    - Install all required dependencies
-   - Prompt you for your OpenAI API key on first run
+   - Prompt you for your API configuration on first run
 
 ## Usage
 

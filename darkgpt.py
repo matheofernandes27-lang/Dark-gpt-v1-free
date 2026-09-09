@@ -68,7 +68,7 @@ DISPLAY_NAME = "DARK-GPT"
 CREATOR_NAME = "M4TH4CK3R"
 GITHUB_RAW_URL = "https://raw.githubusercontent.com/InfoSecREDD/DarkGPT-Lite/main/darkgpt.py"
 OLLAMA_API_URL = "http://127.0.0.1:11434/api/chat"
-OLLAMA_MODEL = "llama3.2"
+OLLAMA_MODEL = "dolphin-llama3"
 
 import warnings
 import sys
@@ -666,7 +666,8 @@ class DarkGPT:
         config = {
             "api_key": self.api_key,
             "system_message": self.system_message,
-            "model": self.model
+            "model": self.model,
+            "server_url": self.config.get("server_url", "http://127.0.0.1:11434")
         }
         with open(APP_DIR / "config.json", "w") as config_file:
             json.dump(config, config_file, indent=4)
@@ -1099,8 +1100,12 @@ class DarkGPT:
 
     def setup(self):
         """Configure the local Ollama backend."""
-        self.api_key = ""
-        self.model = OLLAMA_MODEL
+        if not self.config:
+            self.config = self.load_config()
+
+        # Use config values if they exist, otherwise use defaults
+        self.api_key = self.config.get("api_key", "")
+        self.model = self.config.get("model", OLLAMA_MODEL)
 
         if platform.system() == "Darwin":
             print(f"{Colors.BRIGHT_YELLOW}macOS user mode detected: no admin rights assumed; using local user install paths.{Colors.RESET}")
@@ -1110,10 +1115,9 @@ class DarkGPT:
 
         print(f"{Colors.GREEN}Using local Ollama model: {self.model}{Colors.RESET}")
 
-        self.config["api_key"] = ""
-        self.config["model"] = self.model
+        # IMPORTANT: Do NOT overwrite config with defaults here
         self.save_config()
-        
+
         if self.config.get("system_message"):
             self.system_message = self.config["system_message"]
             

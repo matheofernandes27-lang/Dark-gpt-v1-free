@@ -1,5 +1,6 @@
 {
     "api_key": "YOUR_API_KEY_HERE",
     "system_message": "Your system message here",
-    "model": "llama3.2"
+    "model": "llama3.2",
+    "server_url": "http://your-server-ip:11434"
 }

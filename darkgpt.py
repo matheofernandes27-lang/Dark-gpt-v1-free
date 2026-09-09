@@ -644,13 +644,18 @@ class DarkGPT:
         default_config = {
             "api_key": "",
             "system_message": self.system_message,
-            "model": self.model
+            "model": self.model,
+            "server_url": "http://127.0.0.1:11434"
         }
-        
+
         if os.path.exists(config_path):
             try:
                 with open(config_path, "r") as f:
-                    return json.load(f)
+                    config = json.load(f)
+                    # Assurer que server_url existe même dans les anciennes configs
+                    if "server_url" not in config:
+                        config["server_url"] = default_config["server_url"]
+                    return config
             except:
                 return default_config
         else:
@@ -688,7 +693,8 @@ class DarkGPT:
 
     def _ollama_server_ready(self):
         try:
-            response = requests.get("http://127.0.0.1:11434/api/tags", timeout=2)
+            url = f"{self.config.get('server_url', 'http://127.0.0.1:11434')}/api/tags"
+            response = requests.get(url, timeout=2)
             return response.status_code == 200
         except Exception:
             return False
@@ -1148,7 +1154,8 @@ class DarkGPT:
         }
         
         try:
-            response = requests.post(OLLAMA_API_URL, headers=headers, json=payload, timeout=120)
+            url = f"{self.config.get('server_url', 'http://127.0.0.1:11434')}/api/chat"
+            response = requests.post(url, headers=headers, json=payload, timeout=120)
             response.raise_for_status()
             return response.json()["message"]["content"]
         except Exception as e:

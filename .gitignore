@@ -30,6 +30,7 @@ venv/
 .venv/
 env/
 .env/
+.darkgpt_venv/
 
 # IDEs
 .vscode/

@@ -56,7 +56,14 @@ DarkGPT Lite is a specialized CLI tool providing unrestricted conversations with
      python3 darkgpt.py
      ```
 
-3. DarkGPT Lite will:
+3. **Optional: Create a macOS App icon**:
+   If you are on macOS and want a double-clickable `.app` icon:
+   ```bash
+   chmod +x build_app.sh
+   ./build_app.sh
+   ```
+
+4. DarkGPT Lite will:
    - Automatically create a virtual environment
    - Install all required dependencies
    - Prompt you for your API configuration on first run

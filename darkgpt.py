@@ -645,16 +645,19 @@ class DarkGPT:
             "api_key": "",
             "system_message": self.system_message,
             "model": self.model,
-            "server_url": "http://127.0.0.1:11434"
+            "server_url": "http://127.0.0.1:11434",
+            "language": "French"
         }
 
         if os.path.exists(config_path):
             try:
                 with open(config_path, "r") as f:
                     config = json.load(f)
-                    # Assurer que server_url existe même dans les anciennes configs
+                    # Assurer que server_url et language existent même dans les anciennes configs
                     if "server_url" not in config:
                         config["server_url"] = default_config["server_url"]
+                    if "language" not in config:
+                        config["language"] = default_config["language"]
                     return config
             except:
                 return default_config
@@ -1383,7 +1386,7 @@ class DarkGPT:
         ]
         
         while True:
-            user_input = input(f"\n{Colors.BRIGHT_WHITE}YOU > {Colors.RESET}")
+            user_input = input(f"\n{Colors.BRIGHT_BLUE}YOU > {Colors.RESET}")
             if user_input.lower() in ['exit', 'quit', 'quitter']:
                 break
             if user_input.lower() in ['effacer mémoire', 'effacer memoire', 'clear memory']:
@@ -1456,10 +1459,10 @@ class DarkGPT:
 
     def _print_chat_response(self, response):
         terminal_width = shutil.get_terminal_size(fallback=(80, 24)).columns
-        prefix = f"[x_x] {APP_NAME} : "
+        prefix = f"{APP_NAME} : "
         available_width = max(30, terminal_width - len(prefix) - 2)
 
-        print(f"{Colors.BRIGHT_RED}{prefix}{Colors.RESET}")
+        print(f"{Colors.RED}{prefix}{Colors.RESET}")
         for line in str(response).splitlines() or [""]:
             if not line.strip():
                 print()
@@ -1474,7 +1477,7 @@ class DarkGPT:
                 break_on_hyphens=False,
             ) or [""]
             for wrapped_line in wrapped_lines:
-                print(f"{Colors.BRIGHT_RED}  {wrapped_line}{Colors.RESET}")
+                print(f"{Colors.BRIGHT_WHITE}  {wrapped_line}{Colors.RESET}")
     
     def create_project(self):
         RainEffects.clear_screen()
@@ -1822,6 +1825,40 @@ class DarkGPT:
             time.sleep(1.5)
             RainEffects.clear_screen()
     
+    def _change_language(self):
+        RainEffects.transition_effect("Language Selection")
+        print(f"\n{Colors.BRIGHT_GREEN}=== Change Response Language ==={Colors.RESET}")
+        print(f"\n{Colors.YELLOW}Current language: {Colors.BRIGHT_WHITE}{self.config.get('language', 'French')}{Colors.RESET}")
+        print(f"\n{Colors.CYAN}1. French / Français{Colors.RESET}")
+        print(f"{Colors.CYAN}2. English / Anglais{Colors.RESET}")
+        print(f"{Colors.CYAN}3. Custom language (Enter name){Colors.RESET}")
+        print(f"{Colors.CYAN}0. Cancel{Colors.RESET}")
+
+        choice = input(f"\n{Colors.BRIGHT_GREEN}>{Colors.BRIGHT_WHITE} Select language (number): {Colors.RESET}")
+
+        if choice == '1':
+            self.config["language"] = "French"
+        elif choice == '2':
+            self.config["language"] = "English"
+        elif choice == '3':
+            lang = input(f"{Colors.YELLOW}Enter language name (e.g. Spanish, German): {Colors.RESET}")
+            if lang.strip():
+                self.config["language"] = lang.strip()
+        elif choice == '0':
+            RainEffects.clear_screen()
+            return True
+        else:
+            print(f"{Colors.BRIGHT_RED}Invalid choice.{Colors.RESET}")
+            time.sleep(1.5)
+            RainEffects.clear_screen()
+            return True
+
+        self.save_config()
+        print(f"{Colors.BRIGHT_GREEN}Language updated to: {Colors.BRIGHT_WHITE}{self.config['language']}{Colors.RESET}")
+        time.sleep(1.5)
+        RainEffects.clear_screen()
+        return True
+
     def show_menu(self):
         RainEffects.startup_sequence()
         RainEffects.print_banner()
@@ -1854,6 +1891,7 @@ class DarkGPT:
             print(f"{Colors.BRIGHT_BLACK}│{Colors.RESET}  {Colors.BRIGHT_CYAN}10.{Colors.RESET} {Colors.BRIGHT_WHITE}Réinitialiser les réglages{Colors.RESET}{' ' * 25}     {Colors.BRIGHT_BLACK}│{Colors.RESET}")
             print(f"{Colors.BRIGHT_BLACK}│{Colors.RESET}  {Colors.BRIGHT_CYAN}11.{Colors.RESET} {Colors.BRIGHT_WHITE}Vérifier les mises à jour{Colors.RESET}{' ' * 25}     {Colors.BRIGHT_BLACK}│{Colors.RESET}")
             print(f"{Colors.BRIGHT_BLACK}│{Colors.RESET}  {Colors.BRIGHT_CYAN}12.{Colors.RESET} {Colors.BRIGHT_WHITE}Gérer les sessions{Colors.RESET}{' ' * 27}     {Colors.BRIGHT_BLACK}│{Colors.RESET}")
+            print(f"{Colors.BRIGHT_BLACK}│{Colors.RESET}  {Colors.BRIGHT_CYAN}13.{Colors.RESET} {Colors.BRIGHT_WHITE}Changer la langue{Colors.RESET}{' ' * 25}     {Colors.BRIGHT_BLACK}│{Colors.RESET}")
             print(f"{Colors.BRIGHT_BLACK}└────────────────────────────────────────────────────────────┘{Colors.RESET}")
             print(f"\n{Colors.BRIGHT_RED}┌────────────────────────────────────────────────────────────┐{Colors.RESET}")
             print(f"{Colors.BRIGHT_RED}│{Colors.RESET}  {Colors.BRIGHT_RED}0.{Colors.RESET} {Colors.BRIGHT_RED}Quitter{Colors.RESET}{' ' * 42}      {Colors.BRIGHT_RED}│{Colors.RESET}")

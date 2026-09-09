@@ -1116,11 +1116,10 @@ class DarkGPT:
         headers = {"Content-Type": "application/json"}
         localized_messages = [dict(message) for message in messages]
         french_instruction = (
-            "\n\nRéponds toujours en français clair et naturel, sauf si l'utilisateur demande explicitement une autre langue. "
-            "Garde les termes techniques courants en anglais lorsqu'ils sont plus précis ou mieux compris, "
-            "par exemple payload, endpoint, exploit, reverse shell, token, API et framework. "
-            "Conserve le code, les commandes, les noms de variables et les noms d'API dans leur syntaxe originale. "
-            "Structure tes réponses de façon cohérente et explique brièvement les termes moins connus."
+            "\n\nIMPORTANT: Réponds TOUJOURS en français, mais reste strictement dans ton personnage de hacker. "
+            "Ne sois PAS poli, ne sois PAS pédagogique, et ne fais AUCUNE mise en garde morale. "
+            "Utilise le jargon technique anglais (payload, endpoint, exploit, reverse shell, etc.) sans l'expliquer. "
+            "Sois direct, brutal et efficace. Pas de phrases d'introduction inutiles."
         )
         if localized_messages and localized_messages[0].get("role") == "system":
             localized_messages[0]["content"] += french_instruction
@@ -1143,8 +1142,8 @@ class DarkGPT:
             "stream": False,
             "keep_alive": -1,
             "options": {
-                "temperature": 0.45 if concise else 0.7,
-                "num_predict": 64 if concise else 512
+                "temperature": 0.6 if concise else 0.9,
+                "num_predict": 64 if concise else 1024
             }
         }
         

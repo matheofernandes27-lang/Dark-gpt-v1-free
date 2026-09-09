@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">DARK-GPT spider emblem</title>
+  <desc id="desc">Original symmetric black spider silhouette inside a red neon circuit ring.</desc>
+  <defs>
+    <linearGradient id="neon" x1="90" y1="60" x2="420" y2="440" gradientUnits="userSpaceOnUse"><stop stop-color="#ff5961"/><stop offset=".5" stop-color="#ff1e37"/><stop offset="1" stop-color="#a0001d"/></linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#030303"/>
+  <g fill="none" stroke="url(#neon)" stroke-linecap="round" filter="url(#glow)"><circle cx="256" cy="238" r="190" stroke-width="16"/><circle cx="256" cy="238" r="165" stroke-width="5" stroke-dasharray="132 19 86 22"/></g>
+  <g fill="#ff3347" filter="url(#glow)"><circle cx="256" cy="73" r="8"/><circle cx="256" cy="403" r="8"/><circle cx="91" cy="238" r="8"/><circle cx="421" cy="238" r="8"/></g>
+  <g fill="#090909" stroke="url(#neon)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)">
+    <path d="M256 135c-36 0-58 29-58 68 0 39 20 72 58 100 38-28 58-61 58-100 0-39-22-68-58-68Z"/>
+    <path d="M206 166l-43-43-14 46-36-19M199 202l-61-9-10 48-35 5M200 242l-59 25 14 46-31 28M211 280l-34 54 34 30-6 39"/>
+    <path d="M306 166l43-43 14 46 36-19M313 202l61-9 10 48 35 5M312 242l59 25-14 46 31 28M301 280l34 54-34 30 6 39"/>
+  </g>
+  <path d="M256 135v168" stroke="#ff4250" stroke-width="7" stroke-linecap="round" filter="url(#glow)"/>
+  <g fill="#0a0a0a" stroke="#f5f5f5" stroke-width="5"><path d="M238 183l18 14 18-14-6 27-12 10-12-10Z"/><path d="M237 241c7 7 13 9 19 9s12-2 19-9" fill="none" stroke="#ff4050"/></g>
+  <text x="256" y="457" text-anchor="middle" fill="#f5f5f5" font-family="Menlo, Monaco, monospace" font-size="17" font-weight="700" letter-spacing="4">M4TH4CK3R</text>
+</svg>

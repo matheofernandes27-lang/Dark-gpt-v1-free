@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">DARK-GPT realistic spider emblem</title>
+  <desc id="desc">Original red neon spider emblem with an empty center reserved for M4TH4CK3R.</desc>
+  <defs>
+    <linearGradient id="neon" x1="80" y1="50" x2="430" y2="455" gradientUnits="userSpaceOnUse"><stop stop-color="#ff6a6f"/><stop offset=".5" stop-color="#ff1938"/><stop offset="1" stop-color="#8e001b"/></linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#030303"/>
+  <circle cx="256" cy="238" r="194" fill="none" stroke="#430914" stroke-width="17" filter="url(#glow)"/>
+  <circle cx="256" cy="238" r="194" fill="none" stroke="url(#neon)" stroke-width="7" filter="url(#glow)"/>
+  <circle cx="256" cy="238" r="171" fill="none" stroke="url(#neon)" stroke-width="4" stroke-dasharray="90 18 52 24"/>
+  <g fill="none" stroke="url(#neon)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)">
+    <path d="M207 177C172 143 151 118 132 91M190 201C146 182 113 173 76 166M184 230C139 230 104 237 67 250M188 260C147 278 116 299 89 330M204 285C183 325 175 356 171 394"/>
+    <path d="M305 177C340 143 361 118 380 91M322 201C366 182 399 173 436 166M328 230C373 230 408 237 445 250M324 260C365 278 396 299 423 330M308 285C329 325 337 356 341 394"/>
+  </g>
+  <g fill="#0a0a0a" stroke="url(#neon)" stroke-width="8" filter="url(#glow)">
+    <path d="M226 145c-25-17-39-12-44 4-4 14 9 29 25 34-9 17-8 36 8 47-11 18-6 39 10 49-7 23 8 48 31 55 23-7 38-32 31-55 16-10 21-31 10-49 16-11 17-30 8-47 16-5 29-20 25-34-5-16-19-21-44-4Z"/>
+    <path d="M286 145c25-17 39-12 44 4 4 14-9 29-25 34 9 17 8 36-8 47 11 18 6 39-10 49 7 23-8 48-31 55-23-7-38-32-31-55-16-10-21-31-10-49-16-11-17-30-8-47-16-5-29-20-25-34 5-16 19-21 44-4Z"/>
+  </g>
+  <path d="M256 151v154" stroke="#321018" stroke-width="5"/>
+  <circle cx="256" cy="238" r="48" fill="#030303"/>
+  <text x="256" y="243" text-anchor="middle" fill="#f5f5f5" font-family="Menlo, Monaco, monospace" font-size="15" font-weight="700" letter-spacing="2">M4TH4CK3R</text>
+  <g fill="#ff394b" filter="url(#glow)"><circle cx="132" cy="91" r="7"/><circle cx="76" cy="166" r="7"/><circle cx="67" cy="250" r="7"/><circle cx="89" cy="330" r="7"/><circle cx="171" cy="394" r="7"/><circle cx="380" cy="91" r="7"/><circle cx="436" cy="166" r="7"/><circle cx="445" cy="250" r="7"/><circle cx="423" cy="330" r="7"/><circle cx="341" cy="394" r="7"/></g>
+</svg>

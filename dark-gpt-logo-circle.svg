@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">DARK-GPT circular AI logo</title>
+  <desc id="desc">Original fully circular red and black AI symbol by M4TH4CK3R.</desc>
+  <defs>
+    <linearGradient id="red" x1="80" y1="60" x2="432" y2="450" gradientUnits="userSpaceOnUse"><stop stop-color="#ff5058"/><stop offset="1" stop-color="#a4001e"/></linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#050505"/>
+  <circle cx="256" cy="235" r="183" fill="none" stroke="#242424" stroke-width="3"/>
+  <g fill="none" stroke="url(#red)" stroke-width="17" stroke-linecap="round" filter="url(#glow)">
+    <circle cx="256" cy="235" r="148" stroke-dasharray="210 55 120 45" transform="rotate(-18 256 235)"/>
+    <ellipse cx="256" cy="235" rx="72" ry="148" transform="rotate(60 256 235)"/>
+    <ellipse cx="256" cy="235" rx="72" ry="148" transform="rotate(-60 256 235)"/>
+  </g>
+  <circle cx="256" cy="235" r="42" fill="#050505" stroke="#f5f5f5" stroke-width="8"/>
+  <g fill="#f5f5f5"><circle cx="256" cy="235" r="9"/><circle cx="256" cy="52" r="8"/><circle cx="415" cy="327" r="8"/><circle cx="97" cy="327" r="8"/></g>
+  <text x="256" y="440" text-anchor="middle" fill="#f5f5f5" font-family="Menlo, Monaco, monospace" font-size="19" font-weight="700" letter-spacing="4">M4TH4CK3R</text>
+</svg>

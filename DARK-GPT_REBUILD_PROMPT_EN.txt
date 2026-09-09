@@ -1,0 +1,298 @@
+# MASTER PROMPT: REBUILD DARK-GPT
+
+You are an expert software engineer and product designer. Rebuild a local AI assistant application called DARK-GPT based on the complete specification below. Treat this document as the source of truth. Produce a clean, maintainable, portable implementation. Do not replace the requested features with a generic chatbot demo.
+
+## 1. Product Identity
+
+Application name: DARK-GPT
+Creator name: M4TH4CK3R
+Subtitle: POWERED BY OLLAMA FREE
+Purpose: a local, terminal-first AI assistant for lawful personal use, learning, software development, and authorized cybersecurity research.
+
+The creator identity must appear under the large DARK-GPT title in a smaller, readable font. If the user asks who created the application, the application must answer automatically and deterministically:
+
+"DARK-GPT a été créé par M4TH4CK3R."
+
+This automatic creator answer must not require an Ollama request.
+
+## 2. Technology Requirements
+
+- Use Python 3.9 or newer.
+- Use Ollama as the default local AI backend.
+- Default model: llama3.2.
+- Default API endpoint: http://127.0.0.1:11434/api/chat.
+- Use the Ollama chat API with structured JSON messages.
+- Keep the model loaded between requests with keep_alive when supported.
+- Use a bounded generation length so the assistant does not generate unnecessarily long answers.
+- Keep backend calls isolated in a clear provider function so additional providers can be added later without rewriting the user interface.
+- Use requests or another small, well-maintained HTTP client.
+- Do not require administrator privileges for local installation.
+- Store user-generated data in a user-writable application directory.
+- Never hardcode the original developer's absolute filesystem paths.
+- Resolve paths relative to the application/project directory or the current user's home directory.
+
+## 3. Terminal User Interface
+
+Build a polished terminal UI. It must be readable, deliberate, and cyber-themed without looking like a debugging console or a stream of system errors.
+
+Base palette for the chat: BLACK, WHITE, and RED only.
+
+- Background: the user's normal black terminal background.
+- User input and neutral instructions: white.
+- DARK-GPT responses: vivid red.
+- Main frames and important chat markers: vivid red.
+- Avoid purple, cyan, green, and blue in the chat interface.
+- Red is the primary branding color for the home menu and chat.
+- Use ANSI colors safely and always reset the color after every colored segment.
+- The interface must remain readable if ANSI colors are unavailable.
+
+## 4. Startup Animation
+
+When the application starts, the animation must be a visible part of the experience, not an afterthought.
+
+Sequence:
+
+1. Clear the terminal.
+2. Type the title DARK-GPT character by character in vivid red.
+3. Clear or transition cleanly to this ASCII frame, printed in vivid red:
+
+      .----------------------------------------------------------.
+      |                                                          |
+      |        A R E   Y O U   R E A D Y   F O R                |
+      |                                                          |
+      |             T H E   B E S T   A I   E X P E R I E N C E |
+      |                                                          |
+      |              [x_x]  [x_x]  [x_x]  [x_x]                 |
+      '----------------------------------------------------------'
+
+4. Display a red progress animation such as:
+   DARK-GPT // INITIALIZING: [progress bar]
+5. Display DARK-GPT ONLINE in vivid red.
+6. Clear the animation screen and display the main banner.
+
+The animation should be dramatic but not excessively slow. Keep it usable on every launch.
+
+## 5. Main Banner
+
+The main banner must show DARK-GPT as the large primary title in ASCII art. Do not put M4TH4CK3R in the largest position.
+
+Under the large DARK-GPT title, show:
+
+                         POWERED BY OLLAMA FREE
+                              M4TH4CK3R
+
+M4TH4CK3R must be smaller than DARK-GPT, clearly visible, and colored vivid red.
+
+Use red frames around the banner. Do not use cyan or blue frames around the home banner.
+
+Example identity line:
+
+DARK-GPT // LOCAL AI TERMINAL
+
+## 6. Home Menu
+
+The home menu must be simple to understand but clearly cyber-themed. Use red frames and readable white labels. Do not overload it with unnecessary decoration.
+
+Suggested sections:
+
+WORKSPACE:
+1. Chat with DARK-GPT
+2. Create a project
+
+PROJECTS:
+3. List projects
+4. Edit a project
+5. Delete a project
+6. Run a project
+
+CONFIGURATION:
+7. API/provider settings
+8. Edit system instructions
+9. Change model
+10. Reset settings
+11. Check for updates
+12. Manage sessions
+
+0. Exit
+
+Keep the existing numbered navigation behavior. Do not change the meaning of existing options without explicit approval.
+
+## 7. Chat Experience
+
+The chat must use the following visual convention:
+
+- User prompt: white, for example `YOU >`.
+- DARK-GPT response label: vivid red, with a small `[x_x]` marker.
+- DARK-GPT response text: vivid red.
+- Neutral instructions: white.
+- Spinner while a real Ollama request is running: red.
+- Chat header and borders: red.
+- No purple, cyan, green, or blue in the chat.
+
+The chat must preserve the full conversation context for the active session.
+
+## 8. Response Behavior
+
+Do not hardcode every conversational answer. Real questions must be sent to Ollama.
+
+For short conversational questions such as:
+
+- "T'as compris ?"
+- "Tu as compris ?"
+- "Ça va ?"
+- "Bonjour"
+- "Merci"
+
+send the request to Ollama with a concise-response instruction and a small generation limit. The model must still analyze the conversation context before responding. Do not immediately return a hardcoded OK before contacting the model.
+
+If Ollama returns only `OK`, `OK.`, or `okay` for a short confirmation question, replace that uninformative display result with:
+
+"Oui, j'ai compris."
+
+This replacement is only a presentation fallback after the real model request completed. It must not bypass the request or pretend that a model analysis happened when it did not.
+
+Normal questions should receive normal model responses. Keep answers clear, useful, and reasonably concise.
+
+## 9. Ollama Lifecycle
+
+On macOS, support a user-local Ollama installation such as:
+
+~/Applications/Ollama.app/Contents/MacOS/ollama
+
+Detect Ollama in PATH and in common user-local application locations.
+
+If the local API is unavailable on macOS, open Ollama.app in the background without taking focus, using the equivalent of:
+
+open -gj Ollama.app
+
+Wait for http://127.0.0.1:11434/api/tags to respond before sending chat requests. Show a clear, user-friendly message if the server cannot start.
+
+Do not require a visible Ollama window or a second manual Ollama tab for normal use.
+
+## 10. Memory and Sessions
+
+Implement local, file-based session memory for the current desktop version.
+
+Each session should contain:
+
+- session ID;
+- title;
+- created timestamp;
+- updated timestamp;
+- messages with roles and content.
+
+Support:
+
+- create a session;
+- open a session;
+- list sessions;
+- rename a session;
+- search messages across sessions;
+- export a session to readable text or JSON;
+- delete a non-default session;
+- preserve the active session after restarting the application.
+
+Do not claim that the model has been retrained. Explain internally that this is contextual memory, not weight training.
+
+For a future web version, the architecture should make it possible to add per-user persistent memory, preference extraction, semantic search, profiles, synchronization, and user-controlled deletion.
+
+## 11. Projects
+
+Preserve project-management functionality:
+
+- create a project;
+- list projects;
+- edit project files;
+- delete a project;
+- run an authorized local project.
+
+Use safe path handling. Do not allow accidental writes outside the selected project directory without confirmation.
+
+## 12. Providers and Future Expansion
+
+Ollama with llama3.2 is the default and must remain fully functional.
+
+Design the code so that Claude, OpenAI-compatible APIs, and other providers can be added later through a provider abstraction and explicit user configuration. Do not require cloud API keys for the default local Ollama mode.
+
+Never expose API keys in source code, logs, screenshots, archives, or configuration committed to a public repository.
+
+## 13. Launchers
+
+Provide two launch modes:
+
+### Terminal mode for other users
+
+Provide a portable `start.command` for macOS. It must:
+
+- resolve its own directory dynamically;
+- work when launched from Finder or from another current directory;
+- activate or use a local virtual environment when available;
+- launch the application in Terminal;
+- not depend on a developer-specific absolute path.
+
+### VS Code mode for the developer
+
+Provide a VS Code workspace configuration with a task that:
+
+- starts automatically when the project folder opens;
+- runs Dark-gpt in the integrated terminal;
+- focuses the terminal;
+- opens the terminal panel maximized when possible;
+- makes the startup animation the primary visible experience.
+
+Optionally provide a macOS `.app` launcher that opens VS Code without creating a separate Terminal window.
+
+## 14. Portability
+
+The project must be portable across macOS, Windows, and Linux as far as the local Ollama model allows.
+
+- Use `pathlib` for filesystem paths.
+- Detect operating-system differences.
+- Never assume `/Applications/Docker.app/...` exists.
+- Never assume the username is `Invite`.
+- Make dependency installation user-local where possible.
+- Provide clear setup instructions for Python, dependencies, Ollama, and the model.
+- Keep platform-specific launchers separate when necessary.
+
+## 15. Configuration and Reliability
+
+- Use a readable JSON configuration file.
+- Provide sensible defaults.
+- Handle malformed configuration files gracefully.
+- Handle missing Ollama, missing models, network errors, malformed API responses, and interrupted requests without crashing.
+- Use clear messages for genuine errors only.
+- Do not make normal branding or animation text look like a system error.
+- Compile and smoke-test the application before presenting it as complete.
+- Test startup, menu navigation, a short chat question, a normal chat question, session creation, session reopening, and clean exit.
+
+## 16. Legal and Safety Boundaries
+
+The application is for lawful personal use, software development, education, and authorized security research. Preserve the local model integration and the requested user interface, but do not advertise or implement unauthorized access, evasion, credential theft, malware, surveillance, or harm. Add a clear disclaimer and require authorization for security testing workflows.
+
+## 17. Expected Deliverables
+
+Return a complete project, not only a code fragment:
+
+- main Python application;
+- configuration file;
+- dependency file;
+- local session storage implementation;
+- macOS terminal launcher;
+- VS Code task configuration;
+- optional macOS app launcher;
+- README with setup and troubleshooting;
+- license file preserving the original project license when this is a derivative work;
+- automated or repeatable smoke-test instructions.
+
+Before finishing, verify that:
+
+1. DARK-GPT starts with the red animation.
+2. M4TH4CK3R appears beneath the title in red and smaller text.
+3. The home menu uses red frames.
+4. The chat uses only black, white, and red.
+5. Ollama starts or is detected without administrator privileges.
+6. A short confirmation is analyzed by Ollama and does not display a meaningless hardcoded OK.
+7. A normal question receives a model response.
+8. Sessions can be created, reopened, searched, renamed, exported, and deleted.
+9. The project can be moved to another computer without developer-specific absolute paths.
+10. No API key or private conversation data is included in public source archives.

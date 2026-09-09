@@ -1,0 +1,5 @@
+{
+    "api_key": "YOUR_API_KEY_HERE",
+    "system_message": "Your system message here",
+    "model": "llama3.2"
+}

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">DARK-GPT circular logo</title>
+  <desc id="desc">Circular red and black artificial intelligence logo by M4TH4CK3R.</desc>
+  <defs>
+    <linearGradient id="red" x1="92" y1="72" x2="420" y2="440" gradientUnits="userSpaceOnUse"><stop stop-color="#ff4b54"/><stop offset="1" stop-color="#a5001e"/></linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#050505"/>
+  <circle cx="256" cy="238" r="174" fill="none" stroke="#2b2b2b" stroke-width="4"/>
+  <circle cx="256" cy="238" r="154" fill="none" stroke="url(#red)" stroke-width="16" stroke-dasharray="18 12" filter="url(#glow)"/>
+  <g fill="none" stroke="url(#red)" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)">
+    <path d="M181 203c0-42 34-76 76-76s76 34 76 76v49c0 42-34 76-76 76s-76-34-76-76Z"/>
+    <path d="M181 214c-24 10-39 29-39 53s15 43 39 53M331 214c24 10 39 29 39 53s-15 43-39 53"/>
+    <path d="M210 225l31 22M302 225l-31 22M218 278c23 16 53 16 76 0"/>
+    <path d="M142 164l-26-22M370 164l26-22M142 342l-26 22M370 342l26 22"/>
+  </g>
+  <g fill="#f5f5f5">
+    <circle cx="116" cy="142" r="9"/><circle cx="396" cy="142" r="9"/><circle cx="116" cy="364" r="9"/><circle cx="396" cy="364" r="9"/>
+  </g>
+  <text x="256" y="455" text-anchor="middle" fill="#f5f5f5" font-family="Menlo, Monaco, monospace" font-size="19" font-weight="700" letter-spacing="4">M4TH4CK3R</text>
+</svg>

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">DARK-GPT symmetric spider AI logo</title>
+  <desc id="desc">Original symmetrical red spider and crossed circles logo by M4TH4CK3R.</desc>
+  <defs>
+    <linearGradient id="left" x1="145" y1="100" x2="256" y2="370" gradientUnits="userSpaceOnUse"><stop stop-color="#ff5159"/><stop offset="1" stop-color="#9d001d"/></linearGradient>
+    <linearGradient id="right" x1="367" y1="100" x2="256" y2="370" gradientUnits="userSpaceOnUse"><stop stop-color="#e52d3d"/><stop offset="1" stop-color="#760016"/></linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#050505"/>
+  <circle cx="256" cy="225" r="181" fill="none" stroke="#272727" stroke-width="3"/>
+  <g fill="none" stroke="#b40020" stroke-width="9" opacity=".9" filter="url(#glow)">
+    <ellipse cx="256" cy="225" rx="151" ry="65"/>
+    <ellipse cx="256" cy="225" rx="151" ry="65" transform="rotate(60 256 225)"/>
+    <ellipse cx="256" cy="225" rx="151" ry="65" transform="rotate(-60 256 225)"/>
+  </g>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)">
+    <g stroke="#f03b49" stroke-width="15">
+      <path d="M239 165L195 126 150 142M239 190L180 178 130 199M239 220L177 225 125 260M239 248L185 276 151 326M239 276L210 330 205 375"/>
+    </g>
+    <g stroke="#a70020" stroke-width="15">
+      <path d="M273 165L317 126 362 142M273 190L332 178 382 199M273 220L335 225 387 260M273 248L327 276 361 326M273 276L302 330 307 375"/>
+    </g>
+  </g>
+  <path d="M256 128c-42 0-70 30-70 73 0 39 22 77 70 104 48-27 70-65 70-104 0-43-28-73-70-73Z" fill="#080808" stroke="#f5f5f5" stroke-width="7"/>
+  <path d="M256 128v177" stroke="#f5f5f5" stroke-width="5"/>
+  <path d="M256 155c-21 0-39 12-51 31 18 1 34 8 51 21Z" fill="url(#left)"/>
+  <path d="M256 155c21 0 39 12 51 31-18 1-34 8-51 21Z" fill="url(#right)"/>
+  <path d="M206 212c19 12 35 16 50 16M306 212c-19 12-35 16-50 16M218 258c13 14 25 20 38 20M294 258c-13 14-25 20-38 20" fill="none" stroke="#f5f5f5" stroke-width="6" stroke-linecap="round"/>
+  <g fill="#f5f5f5"><circle cx="150" cy="142" r="8"/><circle cx="130" cy="199" r="8"/><circle cx="125" cy="260" r="8"/><circle cx="151" cy="326" r="8"/><circle cx="205" cy="375" r="8"/><circle cx="362" cy="142" r="8"/><circle cx="382" cy="199" r="8"/><circle cx="387" cy="260" r="8"/><circle cx="361" cy="326" r="8"/><circle cx="307" cy="375" r="8"/></g>
+  <text x="256" y="438" text-anchor="middle" fill="#f5f5f5" font-family="Menlo, Monaco, monospace" font-size="18" font-weight="700" letter-spacing="4">M4TH4CK3R</text>
+</svg>

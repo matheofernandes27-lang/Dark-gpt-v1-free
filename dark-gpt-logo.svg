@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">DARK-GPT by M4TH4CK3R</title>
+  <desc id="desc">Original red and black neural knot symbol for a local AI application.</desc>
+  <defs>
+    <linearGradient id="red" x1="100" y1="60" x2="420" y2="450" gradientUnits="userSpaceOnUse"><stop stop-color="#ff3b45"/><stop offset="1" stop-color="#9e001c"/></linearGradient>
+    <filter id="soft-glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="#050505"/>
+  <g fill="none" stroke="url(#red)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" filter="url(#soft-glow)">
+    <path d="M256 91C191 91 139 143 139 208c0 24 7 47 20 66-24 19-38 47-38 78 0 57 46 103 103 103 12 0 23-2 34-6 11 4 22 6 34 6 57 0 103-46 103-103 0-31-14-59-38-78 13-19 20-42 20-66 0-65-52-117-117-117Z"/>
+    <path d="M182 194c25-24 54-36 74-36s49 12 74 36M179 319c23 18 50 27 77 27s54-9 77-27M202 244c16 12 34 18 54 18s38-6 54-18"/>
+    <path d="M139 208 82 170M139 274 67 286M373 208l57-38M373 274l72 12M224 449v-48M288 449v-48"/>
+  </g>
+  <g fill="#f5f5f5"><circle cx="82" cy="170" r="10"/><circle cx="67" cy="286" r="10"/><circle cx="430" cy="170" r="10"/><circle cx="445" cy="286" r="10"/><circle cx="224" cy="449" r="10"/><circle cx="288" cy="449" r="10"/></g>
+  <text x="256" y="485" text-anchor="middle" fill="#f5f5f5" font-family="Menlo, Monaco, monospace" font-size="19" font-weight="700" letter-spacing="3">M4TH4CK3R</text>
+</svg>

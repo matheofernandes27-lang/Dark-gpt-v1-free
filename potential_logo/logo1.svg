@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">DARK-GPT neon spider logo</title>
+  <desc id="desc">Original symmetric red neon spider emblem for DARK-GPT by M4TH4CK3R.</desc>
+  <defs>
+    <linearGradient id="neon" x1="90" y1="60" x2="420" y2="440" gradientUnits="userSpaceOnUse"><stop stop-color="#ff5861"/><stop offset=".5" stop-color="#ff1833"/><stop offset="1" stop-color="#a8001e"/></linearGradient>
+    <filter id="red-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="soft-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#040404"/>
+  <circle cx="256" cy="246" r="193" fill="none" stroke="#420711" stroke-width="18" filter="url(#red-glow)"/>
+  <circle cx="256" cy="246" r="193" fill="none" stroke="url(#neon)" stroke-width="8" filter="url(#soft-glow)"/>
+  <circle cx="256" cy="246" r="169" fill="none" stroke="url(#neon)" stroke-width="5" stroke-dasharray="112 18 76 24" filter="url(#soft-glow)"/>
+  <g fill="#ff3a4a" filter="url(#red-glow)"><circle cx="256" cy="77" r="8"/><circle cx="256" cy="415" r="8"/><circle cx="87" cy="246" r="8"/><circle cx="425" cy="246" r="8"/></g>
+  <g fill="none" stroke="url(#neon)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" filter="url(#soft-glow)">
+    <path d="M201 178c-28 29-32 72-10 108 14 23 34 40 65 54M311 178c28 29 32 72 10 108-14 23-34 40-65 54"/>
+    <path d="M202 190l-35-34-12 39M185 224l-51-9 12 40M186 270l-49 20 31 25M203 306l-24 51 42-16"/>
+    <path d="M310 190l35-34 12 39M327 224l51-9-12 40M326 270l49 20-31 25M309 306l24 51-42-16"/>
+  </g>
+  <path d="M256 144c-34 0-57 24-57 59 0 45 25 77 57 99 32-22 57-54 57-99 0-35-23-59-57-59Z" fill="#080808" stroke="#171717" stroke-width="8"/>
+  <path d="M256 144v158M220 199c14 9 25 20 36 34M292 199c-14 9-25 20-36 34M226 263c11 9 20 13 30 13M286 263c-11 9-20 13-30 13" fill="none" stroke="#ff3848" stroke-width="8" stroke-linecap="round" filter="url(#soft-glow)"/>
+  <text x="256" y="472" text-anchor="middle" fill="#f5f5f5" font-family="Menlo, Monaco, monospace" font-size="17" font-weight="700" letter-spacing="4">M4TH4CK3R</text>
+</svg>

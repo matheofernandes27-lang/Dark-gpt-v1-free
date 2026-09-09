@@ -1,4 +1,4 @@
-# DarkGPT Lite
+# Dark-GPT
 
 <p align="center">
   <img src="dark-gpt-logo.jpeg" alt="DARK-GPT by M4TH4CK3R logo" width="420" />
@@ -18,7 +18,7 @@
 
 ## Features
 
-DarkGPT Lite is a specialized CLI tool providing unrestricted conversations with AI for cybersecurity research purposes:
+Dark-GPT is a specialized CLI tool providing unrestricted conversations with AI for cybersecurity research purposes:
 
 *(NOTE: To make this clear, this is based off of "Prompt Engineering", when this prompt breaks fully. There is a handful of new prompts I have and will rotate them accordingly.)*
 
@@ -63,7 +63,7 @@ DarkGPT Lite is a specialized CLI tool providing unrestricted conversations with
    ./build_app.sh
    ```
 
-4. DarkGPT Lite will:
+4. Dark-GPT will:
    - Automatically create a virtual environment
    - Install all required dependencies
    - Prompt you for your API configuration on first run
@@ -74,7 +74,7 @@ DarkGPT Lite is a specialized CLI tool providing unrestricted conversations with
 
 After startup, you'll see the main menu with the following options:
 
-1. **Chat with DarkGPT Lite**: Start an interactive AI conversation
+1. **Chat with Dark-GPT**: Start an interactive AI conversation
 2. **Create New Project**: Generate a new software project with AI
 3. **List Projects**: View your existing projects
 4. **Edit Project**: Modify files in an existing project
@@ -95,7 +95,7 @@ In chat mode, you can have unrestricted conversations with the AI assistant:
 
 ### Project Management
 
-DarkGPT Lite can help create and manage code projects:
+Dark-GPT can help create and manage code projects:
 - Generate complete code projects based on your description
 - Edit existing project files with AI assistance
 - Manage project dependencies automatically
@@ -105,7 +105,7 @@ DarkGPT Lite can help create and manage code projects:
 
 ### Changing AI Models
 
-DarkGPT Lite supports several AI models:
+Dark-GPT supports several AI models:
 - `gpt-3.5-turbo`: Default model, balanced performance and cost
 - `gpt-3.5-turbo-16k`: Extended context window
 - `gpt-4-turbo`: Enhanced capabilities (higher cost)
@@ -121,7 +121,7 @@ The system message defines how the AI responds to queries. You can modify it to:
 
 ## Updates
 
-DarkGPT Lite includes an update system to stay current with the latest features:
+Dark-GPT includes an update system to stay current with the latest features:
 
 1. Select "Check for Updates" from the main menu
 2. The tool will compare your version with the latest on GitHub
@@ -147,7 +147,7 @@ You are solely responsible for all activities conducted with your API key.
 
 ## License
 
-DarkGPT Lite is released under the MIT License. See the LICENSE file for details.
+Dark-GPT is released under the MIT License. See the LICENSE file for details.
 
 ## Author
 

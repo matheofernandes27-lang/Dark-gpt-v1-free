@@ -1118,8 +1118,7 @@ class DarkGPT:
             self.system_message = self.config["system_message"]
             
     def call_openai_api(self, messages, concise=False):
-        """Call the local Ollama chat API."""
-        headers = {"Content-Type": "application/json"}
+        """Call the AI API (Ollama or Groq/OpenAI compatible)."""
         localized_messages = [dict(message) for message in messages]
         french_instruction = (
             "\n\nIMPORTANT: Réponds TOUJOURS en français, mais reste strictement dans ton personnage de hacker. "
@@ -1142,27 +1141,50 @@ class DarkGPT:
                 )
             })
 
-        payload = {
-            "model": self.model,
-            "messages": localized_messages,
-            "stream": False,
-            "keep_alive": -1,
-            "options": {
-                "temperature": 0.6 if concise else 0.9,
-                "num_predict": 64 if concise else 1024
+        # Check if we are using an API key (Groq/OpenAI) or a local/remote Ollama server
+        api_key = self.config.get("api_key")
+        server_url = self.config.get("server_url", "http://127.0.0.1:11434")
+
+        if api_key and api_key.strip():
+            # MODE CLOUD (Groq / OpenAI) - Super Fast and Free Tier
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
             }
-        }
-        
-        try:
-            url = f"{self.config.get('server_url', 'http://127.0.0.1:11434')}/api/chat"
-            response = requests.post(url, headers=headers, json=payload, timeout=120)
-            response.raise_for_status()
-            return response.json()["message"]["content"]
-        except Exception as e:
-            print(f"Error calling Ollama: {str(e)}")
-            if 'response' in locals() and hasattr(response, 'text'):
-                print(f"API Response: {response.text}")
-            return "Error: Failed to get response from Ollama."
+            payload = {
+                "model": self.model,
+                "messages": localized_messages,
+                "temperature": 0.6 if concise else 0.9,
+                "max_tokens": 64 if concise else 1024
+            }
+            try:
+                # Most Cloud APIs use /v1/chat/completions
+                url = "https://api.groq.com/openai/v1/chat/completions" if "groq" in self.model.lower() else "https://api.openai.com/v1/chat/completions"
+                response = requests.post(url, headers=headers, json=payload, timeout=120)
+                response.raise_for_status()
+                return response.json()["choices"][0]["message"]["content"]
+            except Exception as e:
+                return f"Cloud API Error: {str(e)}"
+        else:
+            # MODE OLLAMA (Local or Remote Server)
+            headers = {"Content-Type": "application/json"}
+            payload = {
+                "model": self.model,
+                "messages": localized_messages,
+                "stream": False,
+                "keep_alive": -1,
+                "options": {
+                    "temperature": 0.6 if concise else 0.9,
+                    "num_predict": 64 if concise else 1024
+                }
+            }
+            try:
+                url = f"{server_url}/api/chat"
+                response = requests.post(url, headers=headers, json=payload, timeout=120)
+                response.raise_for_status()
+                return response.json()["message"]["content"]
+            except Exception as e:
+                return f"Ollama Server Error: {str(e)}"
     
     def install_project_requirements(self, project_path):
         """Install requirements for a specific project if requirements.txt exists"""

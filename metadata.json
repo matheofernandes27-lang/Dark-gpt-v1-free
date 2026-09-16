@@ -1,0 +1,8 @@
+{
+  "name": "Dark-GPT",
+  "description": "Unrestricted AI assistant and project manager for cybersecurity research by M4TH4CK3R",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

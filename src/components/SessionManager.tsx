@@ -6,13 +6,16 @@ interface SessionManagerProps {
   currentSessionId: string;
   onSelectSession: (id: string) => void;
   onBackToMenu: () => void;
+  activeMode?: 'defense' | 'hacker';
 }
 
 export const SessionManager: React.FC<SessionManagerProps> = ({
   currentSessionId,
   onSelectSession,
-  onBackToMenu
+  onBackToMenu,
+  activeMode = 'hacker'
 }) => {
+  const isGreen = activeMode === 'defense';
   const [sessions, setSessions] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [newTitle, setNewTitle] = useState<string>('');
@@ -100,20 +103,28 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
   );
 
   return (
-    <div id="session-manager-container" className="flex flex-col h-full bg-black text-white font-mono border border-red-600">
+    <div id="session-manager-container" className={`flex flex-col h-full bg-black text-white font-mono border ${
+      isGreen ? 'border-emerald-600' : 'border-red-600'
+    }`}>
       {/* Top Header */}
-      <div className="bg-red-950/40 border-b border-red-600 px-4 py-2.5 flex items-center justify-between text-xs sm:text-sm">
+      <div className={`border-b px-4 py-2.5 flex items-center justify-between text-xs sm:text-sm ${
+        isGreen ? 'bg-emerald-950/40 border-emerald-600' : 'bg-red-950/40 border-red-600'
+      }`}>
         <div className="flex items-center gap-2">
           <button
             id="session-back-button"
             onClick={onBackToMenu}
-            className="flex items-center gap-1 text-red-500 hover:text-white px-2 py-0.5 border border-red-600 hover:bg-red-600/20 transition-colors"
+            className={`flex items-center gap-1 px-2 py-0.5 border transition-colors ${
+              isGreen 
+                ? 'text-emerald-400 border-emerald-600 hover:bg-emerald-600/20 hover:text-white' 
+                : 'text-red-500 border-red-600 hover:bg-red-600/20 hover:text-white'
+            }`}
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>MENU</span>
           </button>
-          <span className="text-red-500 font-bold tracking-wider">
-            [x_x] SESSIONS MANAGEMENT
+          <span className={`font-bold tracking-wider ${isGreen ? 'text-emerald-400' : 'text-red-500'}`}>
+            {isGreen ? '[🛡️] SESSIONS MANAGEMENT (DEFENSE)' : '[x_x] SESSIONS MANAGEMENT'}
           </span>
         </div>
       </div>
@@ -128,12 +139,18 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder="Titre de la nouvelle session..."
-              className="flex-1 bg-black border border-red-900 px-3 py-1.5 text-xs text-white placeholder-neutral-600 focus:border-red-600 focus:outline-none"
+              className={`flex-1 bg-black border px-3 py-1.5 text-xs text-white placeholder-neutral-600 focus:outline-none ${
+                isGreen ? 'border-emerald-900 focus:border-emerald-500' : 'border-red-900 focus:border-red-600'
+              }`}
             />
             <button
               id="create-session-submit"
               type="submit"
-              className="px-3 py-1.5 bg-red-950 border border-red-600 text-white text-xs font-bold hover:bg-red-600 transition-colors flex items-center gap-1"
+              className={`px-3 py-1.5 border text-white text-xs font-bold transition-colors flex items-center gap-1 ${
+                isGreen 
+                  ? 'bg-emerald-950 border-emerald-600 hover:bg-emerald-600 hover:text-black' 
+                  : 'bg-red-950 border-red-600 hover:bg-red-600'
+              }`}
             >
               <Plus className="w-3.5 h-3.5" />
               <span>CRÉER</span>
@@ -148,13 +165,17 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Rechercher des sessions..."
-              className="w-full bg-black border border-neutral-800 pl-8 pr-3 py-1.5 text-xs text-white placeholder-neutral-600 focus:border-red-600 focus:outline-none"
+              className={`w-full bg-black border border-neutral-800 pl-8 pr-3 py-1.5 text-xs text-white placeholder-neutral-600 focus:outline-none ${
+                isGreen ? 'focus:border-emerald-500' : 'focus:border-red-600'
+              }`}
             />
           </div>
         </div>
 
         {/* Sessions List */}
-        <div className="border border-red-900/60 divide-y divide-neutral-900 bg-neutral-950">
+        <div className={`border divide-y divide-neutral-900 bg-neutral-950 ${
+          isGreen ? 'border-emerald-900/60' : 'border-red-900/60'
+        }`}>
           {filteredSessions.length === 0 ? (
             <div className="p-6 text-center text-neutral-600 text-xs italic">
               Aucune session trouvée.
@@ -168,11 +189,15 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
                 <div
                   key={session.id}
                   className={`p-3 flex items-center justify-between gap-2 text-xs transition-colors ${
-                    isCurrent ? 'bg-red-950/20 border-l-2 border-red-600' : 'hover:bg-neutral-900/40'
+                    isCurrent 
+                      ? isGreen 
+                        ? 'bg-emerald-950/20 border-l-2 border-emerald-500' 
+                        : 'bg-red-950/20 border-l-2 border-red-600' 
+                      : 'hover:bg-neutral-900/40'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <span className="text-red-500 font-bold select-none">
+                    <span className={`font-bold select-none ${isGreen ? 'text-emerald-400' : 'text-red-500'}`}>
                       {isCurrent ? '*' : ' '}
                     </span>
                     {isEditing ? (
@@ -181,7 +206,9 @@ export const SessionManager: React.FC<SessionManagerProps> = ({
                           type="text"
                           value={editTitleInput}
                           onChange={(e) => setEditTitleInput(e.target.value)}
-                          className="bg-black border border-red-600 px-2 py-0.5 text-xs text-white focus:outline-none flex-1"
+                          className={`bg-black border px-2 py-0.5 text-xs text-white focus:outline-none flex-1 ${
+                            isGreen ? 'border-emerald-500' : 'border-red-600'
+                          }`}
                           autoFocus
                         />
                         <button

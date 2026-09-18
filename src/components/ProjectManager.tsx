@@ -5,12 +5,15 @@ import { ArrowLeft, Play, Plus, Trash2, Edit3, Save, FileCode, Terminal } from '
 interface ProjectManagerProps {
   initialView?: 'list' | 'create' | 'edit' | 'run';
   onBackToMenu: () => void;
+  activeMode?: 'defense' | 'hacker';
 }
 
 export const ProjectManager: React.FC<ProjectManagerProps> = ({
   initialView = 'list',
-  onBackToMenu
+  onBackToMenu,
+  activeMode = 'hacker'
 }) => {
+  const isGreen = activeMode === 'defense';
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [activeFile, setActiveFile] = useState<ProjectFile | null>(null);
@@ -149,20 +152,28 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
   };
 
   return (
-    <div id="project-manager-container" className="flex flex-col h-full bg-black text-white font-mono border border-red-600">
+    <div id="project-manager-container" className={`flex flex-col h-full bg-black text-white font-mono border ${
+      isGreen ? 'border-emerald-600' : 'border-red-600'
+    }`}>
       {/* Top Bar */}
-      <div className="bg-red-950/40 border-b border-red-600 px-4 py-2.5 flex items-center justify-between text-xs sm:text-sm">
+      <div className={`border-b px-4 py-2.5 flex items-center justify-between text-xs sm:text-sm ${
+        isGreen ? 'bg-emerald-950/40 border-emerald-600' : 'bg-red-950/40 border-red-600'
+      }`}>
         <div className="flex items-center gap-2">
           <button
             id="pm-back-button"
             onClick={onBackToMenu}
-            className="flex items-center gap-1 text-red-500 hover:text-white px-2 py-0.5 border border-red-600 hover:bg-red-600/20 transition-colors"
+            className={`flex items-center gap-1 px-2 py-0.5 border transition-colors ${
+              isGreen 
+                ? 'text-emerald-400 border-emerald-600 hover:bg-emerald-600/20 hover:text-white' 
+                : 'text-red-500 border-red-600 hover:bg-red-600/20 hover:text-white'
+            }`}
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>MENU</span>
           </button>
-          <span className="text-red-500 font-bold tracking-wider">
-            [x_x] PROJECT WORKSPACE
+          <span className={`font-bold tracking-wider ${isGreen ? 'text-emerald-400' : 'text-red-500'}`}>
+            {isGreen ? '[🛡️] DEFENSIVE & AUDIT WORKSPACE' : '[x_x] PROJECT WORKSPACE'}
           </span>
         </div>
 
@@ -173,10 +184,14 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
 
       <div className="flex-1 grid grid-cols-1 md:grid-cols-12 overflow-hidden">
         {/* Left Column: Project List & Creator */}
-        <div className="md:col-span-4 border-r border-red-900/60 flex flex-col h-full overflow-y-auto bg-black p-3 space-y-4">
+        <div className={`md:col-span-4 border-r flex flex-col h-full overflow-y-auto bg-black p-3 space-y-4 ${
+          isGreen ? 'border-emerald-900/60' : 'border-red-900/60'
+        }`}>
           {/* New Project Accordion */}
-          <div className="border border-red-900/80 bg-red-950/20 p-3 space-y-2">
-            <div className="text-red-500 font-bold text-xs flex items-center gap-1.5">
+          <div className={`border p-3 space-y-2 ${
+            isGreen ? 'border-emerald-900/80 bg-emerald-950/20' : 'border-red-900/80 bg-red-950/20'
+          }`}>
+            <div className={`font-bold text-xs flex items-center gap-1.5 ${isGreen ? 'text-emerald-400' : 'text-red-500'}`}>
               <Plus className="w-3.5 h-3.5" />
               CREATE NEW PROJECT
             </div>
@@ -187,7 +202,9 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
                 placeholder="Nom du projet (ex: wifi-scanner)"
-                className="w-full bg-black border border-red-900 px-2 py-1 text-xs text-white placeholder-neutral-600 focus:border-red-600 focus:outline-none"
+                className={`w-full bg-black border px-2 py-1 text-xs text-white placeholder-neutral-600 focus:outline-none ${
+                  isGreen ? 'border-emerald-900 focus:border-emerald-500' : 'border-red-900 focus:border-red-600'
+                }`}
               />
               <textarea
                 id="create-project-desc"
@@ -195,13 +212,19 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                 onChange={(e) => setProjectDesc(e.target.value)}
                 placeholder="Description / fonctionnalités souhaitées..."
                 rows={2}
-                className="w-full bg-black border border-red-900 px-2 py-1 text-xs text-white placeholder-neutral-600 focus:border-red-600 focus:outline-none resize-none"
+                className={`w-full bg-black border px-2 py-1 text-xs text-white placeholder-neutral-600 focus:outline-none resize-none ${
+                  isGreen ? 'border-emerald-900 focus:border-emerald-500' : 'border-red-900 focus:border-red-600'
+                }`}
               />
               <button
                 id="create-project-submit"
                 type="submit"
                 disabled={generatingWithAI || !projectName.trim()}
-                className="w-full py-1 bg-red-950/70 border border-red-600 text-white text-xs font-bold hover:bg-red-600 transition-colors disabled:opacity-40"
+                className={`w-full py-1 border text-white text-xs font-bold transition-colors disabled:opacity-40 ${
+                  isGreen 
+                    ? 'bg-emerald-950/70 border-emerald-600 hover:bg-emerald-600 hover:text-black' 
+                    : 'bg-red-950/70 border-red-600 hover:bg-red-600'
+                }`}
               >
                 {generatingWithAI ? 'GENERATING WITH AI...' : 'GENERATE & CREATE'}
               </button>
@@ -224,12 +247,16 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                   onClick={() => handleSelectProject(proj.name)}
                   className={`border px-3 py-2 cursor-pointer transition-colors flex items-center justify-between text-xs ${
                     selectedProject?.name === proj.name
-                      ? 'border-red-600 bg-red-950/40 text-white font-bold'
-                      : 'border-neutral-900 hover:border-red-900 text-neutral-300'
+                      ? isGreen 
+                        ? 'border-emerald-500 bg-emerald-950/40 text-white font-bold' 
+                        : 'border-red-600 bg-red-950/40 text-white font-bold'
+                      : isGreen 
+                        ? 'border-neutral-900 hover:border-emerald-900 text-neutral-300' 
+                        : 'border-neutral-900 hover:border-red-900 text-neutral-300'
                   }`}
                 >
                   <div className="flex items-center gap-2 truncate">
-                    <FileCode className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                    <FileCode className={`w-3.5 h-3.5 shrink-0 ${isGreen ? 'text-emerald-400' : 'text-red-500'}`} />
                     <span className="truncate">{proj.name}</span>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -241,7 +268,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                       title="Run Project"
                       className="p-1 hover:text-green-400"
                     >
-                      <Play className="w-3 h-3 text-red-500 hover:text-green-400" />
+                      <Play className={`w-3 h-3 hover:text-green-400 ${isGreen ? 'text-emerald-400' : 'text-red-500'}`} />
                     </button>
                     <button
                       onClick={(e) => {
@@ -265,7 +292,9 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
           {selectedProject ? (
             <div className="flex flex-col h-full">
               {/* Files Tabs */}
-              <div className="bg-black border-b border-red-900/60 flex items-center overflow-x-auto px-2 py-1 gap-1">
+              <div className={`bg-black border-b flex items-center overflow-x-auto px-2 py-1 gap-1 ${
+                isGreen ? 'border-emerald-900/60' : 'border-red-900/60'
+              }`}>
                 {(selectedProject.files || []).map((file) => (
                   <button
                     key={file.path}
@@ -275,7 +304,9 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                     }}
                     className={`px-3 py-1 text-xs border flex items-center gap-1.5 transition-colors ${
                       activeFile?.path === file.path
-                        ? 'border-red-600 bg-red-950/30 text-white font-bold'
+                        ? isGreen 
+                          ? 'border-emerald-500 bg-emerald-950/40 text-white font-bold' 
+                          : 'border-red-600 bg-red-950/30 text-white font-bold'
                         : 'border-transparent hover:border-neutral-800 text-neutral-400'
                     }`}
                   >
@@ -287,7 +318,11 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                   <button
                     id="save-file-button"
                     onClick={handleSaveFile}
-                    className="px-2.5 py-1 bg-red-950 border border-red-600 text-white text-xs hover:bg-red-600 transition-colors flex items-center gap-1 font-bold"
+                    className={`px-2.5 py-1 border text-white text-xs transition-colors flex items-center gap-1 font-bold ${
+                      isGreen 
+                        ? 'bg-emerald-950 border-emerald-600 hover:bg-emerald-600 hover:text-black' 
+                        : 'bg-red-950 border-red-600 hover:bg-red-600'
+                    }`}
                   >
                     <Save className="w-3 h-3" />
                     <span>SAVE</span>
@@ -309,16 +344,20 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                   id="project-code-editor"
                   value={fileContent}
                   onChange={(e) => setFileContent(e.target.value)}
-                  className="w-full flex-1 bg-black p-4 font-mono text-xs sm:text-sm text-neutral-200 resize-none focus:outline-none selection:bg-red-700"
+                  className={`w-full flex-1 bg-black p-4 font-mono text-xs sm:text-sm text-neutral-200 resize-none focus:outline-none ${
+                    isGreen ? 'selection:bg-emerald-700' : 'selection:bg-red-700'
+                  }`}
                   spellCheck={false}
                 />
               </div>
 
               {/* Execution Console Terminal Output */}
               {runLogs && (
-                <div className="h-44 border-t border-red-900 bg-black p-3 font-mono text-xs overflow-y-auto space-y-1">
+                <div className={`h-44 border-t bg-black p-3 font-mono text-xs overflow-y-auto space-y-1 ${
+                  isGreen ? 'border-emerald-900' : 'border-red-900'
+                }`}>
                   <div className="flex items-center justify-between text-neutral-500 border-b border-neutral-900 pb-1 mb-2">
-                    <span className="flex items-center gap-1.5 text-red-500 font-bold">
+                    <span className={`flex items-center gap-1.5 font-bold ${isGreen ? 'text-emerald-400' : 'text-red-500'}`}>
                       <Terminal className="w-3.5 h-3.5" />
                       SANDBOX CONSOLE OUTPUT
                     </span>
@@ -329,7 +368,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                       CLEAR
                     </button>
                   </div>
-                  <pre className="text-red-400 whitespace-pre-wrap leading-relaxed">
+                  <pre className={`whitespace-pre-wrap leading-relaxed ${isGreen ? 'text-emerald-400' : 'text-red-400'}`}>
                     {runLogs}
                   </pre>
                 </div>
@@ -337,7 +376,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-neutral-600 space-y-3">
-              <FileCode className="w-12 h-12 text-red-900" />
+              <FileCode className={`w-12 h-12 ${isGreen ? 'text-emerald-900' : 'text-red-900'}`} />
               <div className="text-neutral-400 text-sm font-bold">
                 NO PROJECT SELECTED
               </div>

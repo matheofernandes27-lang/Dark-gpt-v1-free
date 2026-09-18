@@ -19,23 +19,45 @@ import {
   Sparkles,
   Layers,
   FastForward,
-  Gauge
+  Gauge,
+  HardDrive,
+  FolderOpen,
+  Shield,
+  Skull,
+  Eye,
+  EyeOff,
+  AlertTriangle
 } from 'lucide-react';
 import { exportToPdf, exportToExcel, exportToDocx, exportSourceCode } from '../utils/docExport.ts';
 import { OllamaInstallerModal } from './OllamaInstallerModal.tsx';
+import { MacFileAccessModal } from './MacFileAccessModal.tsx';
+import { Language, translations } from '../utils/i18n.ts';
 
 interface TerminalChatProps {
   session: Session;
+  language?: Language;
+  activeMode?: 'defense' | 'hacker';
+  defaultShowHistory?: boolean;
   onUpdateSession: (updated: Session) => void;
   onBackToMenu: () => void;
+  onToggleCowork?: () => void;
+  isCoworkActive?: boolean;
 }
 
 export const TerminalChat: React.FC<TerminalChatProps> = ({
   session,
+  language = 'fr',
+  activeMode = 'hacker',
+  defaultShowHistory = false,
   onUpdateSession,
-  onBackToMenu
+  onBackToMenu,
+  onToggleCowork,
+  isCoworkActive = false
 }) => {
+  const isGreen = activeMode === 'defense';
+  const t = translations[language];
   const [messages, setMessages] = useState<ChatMessage[]>(session.messages || []);
+  const [showHistoryMessages, setShowHistoryMessages] = useState<boolean>(defaultShowHistory);
   const [input, setInput] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
@@ -50,6 +72,7 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
   const [typingSpeed, setTypingSpeed] = useState<'slow' | 'normal' | 'instant'>('slow');
   const [activeModel, setActiveModel] = useState<string>('🐬 dolphin3 (Ollama)');
   const [showOllamaModal, setShowOllamaModal] = useState<boolean>(false);
+  const [showMacModal, setShowMacModal] = useState<boolean>(false);
   const [ollamaOnline, setOllamaOnline] = useState<boolean | null>(null);
   const [dismissBanner, setDismissBanner] = useState<boolean>(false);
   const [streamingMsgId, setStreamingMsgId] = useState<string | null>(null);
@@ -57,7 +80,7 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
   const streamingTimerRef = useRef<any>(null);
   const fullContentRef = useRef<string>('');
 
-  // Fetch active model from config & check Ollama status
+  // Fetch active model from config & check Ollama status with automatic background polling
   useEffect(() => {
     fetch('/api/config')
       .then(r => r.json())
@@ -69,12 +92,32 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
       })
       .catch(() => {});
 
-    fetch('/api/ollama/status')
-      .then(r => r.json())
-      .then(data => {
-        setOllamaOnline(Boolean(data.online));
-      })
-      .catch(() => setOllamaOnline(false));
+    const pollOllama = async () => {
+      // 1. Check local Mac Ollama directly from browser
+      try {
+        const localPing = await fetch('http://127.0.0.1:11434/api/tags', { signal: AbortSignal.timeout(1500) });
+        if (localPing.ok) {
+          const lData = await localPing.json();
+          const hasDolphin = (lData.models || []).some((m: any) => m.name.toLowerCase().includes('dolphin'));
+          setOllamaOnline(true);
+          setActiveModel(hasDolphin ? '🐬 dolphin3 (Local Mac)' : '🐬 Ollama (Local Mac)');
+          return;
+        }
+      } catch {
+        // Fall back to server status check
+      }
+
+      fetch('/api/ollama/status')
+        .then(r => r.json())
+        .then(data => {
+          setOllamaOnline(Boolean(data.online));
+        })
+        .catch(() => setOllamaOnline(false));
+    };
+
+    pollOllama();
+    const interval = setInterval(pollOllama, 8000);
+    return () => clearInterval(interval);
   }, []);
 
   // Active Plugins
@@ -216,6 +259,20 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
       return;
     }
 
+    // Open Mac Files authorization modal command
+    if (cleanPrompt.toLowerCase() === '/mac' || cleanPrompt.toLowerCase() === 'mac' || cleanPrompt.toLowerCase() === '/fichiers' || cleanPrompt.toLowerCase() === 'fichiers mac') {
+      setShowMacModal(true);
+      setInput('');
+      return;
+    }
+
+    // Open Ollama installer modal command
+    if (cleanPrompt.toLowerCase() === '/ollama' || cleanPrompt.toLowerCase() === 'ollama') {
+      setShowOllamaModal(true);
+      setInput('');
+      return;
+    }
+
     // Direct export command support
     if (cleanPrompt.startsWith('/export')) {
       const parts = cleanPrompt.split(' ');
@@ -245,6 +302,7 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
 
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
+    setShowHistoryMessages(true);
     setInput('');
     setCommandHistory(prev => [cleanPrompt, ...prev]);
     setHistoryIndex(-1);
@@ -255,31 +313,65 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
       .map(([id]) => id);
 
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: newMessages,
-          session_id: session.id,
-          activePlugins: activeList
-        })
-      });
+      let data: any = null;
+      let rawResponse = '';
 
-      if (!res.ok) throw new Error('API Error');
-      const data = await res.json();
-      const rawResponse = data.response || "No response received.";
+      // Attempt direct query to local Mac Ollama if available
+      if (ollamaOnline) {
+        try {
+          const localChatRes = await fetch('http://127.0.0.1:11434/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: 'dolphin3',
+              messages: newMessages.slice(-8).map(m => ({ role: m.role, content: m.content })),
+              stream: false
+            }),
+            signal: AbortSignal.timeout(15000)
+          });
+          if (localChatRes.ok) {
+            const localData = await localChatRes.json();
+            if (localData?.message?.content) {
+              rawResponse = localData.message.content.trim();
+              data = {
+                response: rawResponse,
+                activeModel: '🐬 dolphin3 (Local Mac)',
+                reasoningTime: 0.8
+              };
+            }
+          }
+        } catch {
+          // Gracefully fallback to server
+        }
+      }
+
+      if (!data) {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: newMessages,
+            session_id: session.id,
+            activeMode: activeMode,
+            activePlugins: activeList
+          })
+        });
+
+        if (!res.ok) throw new Error('API Error');
+        data = await res.json();
+        rawResponse = data.response || "No response received.";
+      }
 
       const assistantMessage: ChatMessage = {
         id: `msg-${Date.now()}-a`,
         role: 'assistant',
         content: rawResponse,
         timestamp: new Date().toISOString(),
-        reasoningTime: data.reasoningTime || elapsedTime || 1.4,
-        reasoningSteps: data.reasoningSteps || [
-          "Isolation des paramètres de la requête",
-          "Évaluation des modules (Docs / Code / Web)",
-          "Validation et rendu final"
-        ],
+        reasoningTime: data.reasoningTime || elapsedTime || 0.9,
+        reasoningSteps: data.reasoningSteps,
+        agentLoop: data.agentLoop,
+        requiresConfirmation: data.requiresConfirmation,
+        riskDetails: data.riskDetails,
         sources: data.sources
       };
 
@@ -338,6 +430,28 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
+  };
+
+  const handleConfirmAction = (msg: ChatMessage) => {
+    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, requiresConfirmation: false } : m));
+    setInput("Action confirmée. Poursuivre l'exécution sur le dossier partagé.");
+    setTimeout(() => {
+      const inputEl = document.getElementById('terminal-chat-input') as HTMLInputElement;
+      if (inputEl) {
+        inputEl.focus();
+      }
+    }, 50);
+  };
+
+  const handleCancelAction = (msg: ChatMessage) => {
+    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, requiresConfirmation: false } : m));
+    const cancelMsg: ChatMessage = {
+      id: `msg-${Date.now()}-a`,
+      role: 'assistant',
+      content: "Opération sensible annulée par l'utilisateur. Aucun fichier n'a été modifié.",
+      timestamp: new Date().toISOString()
+    };
+    setMessages(prev => [...prev, cancelMsg]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -399,21 +513,35 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
   };
 
   return (
-    <div id="terminal-chat-container" className="flex flex-col h-full bg-black text-white font-mono border border-red-600 shadow-2xl relative">
-      {/* Red Chat Header */}
-      <div className="bg-red-950/40 border-b border-red-600 px-4 py-2.5 flex items-center justify-between text-xs sm:text-sm">
+    <div id="terminal-chat-container" className={`flex flex-col h-full bg-black text-white font-mono border shadow-2xl relative ${
+      activeMode === 'defense' 
+        ? 'border-emerald-600 shadow-[0_0_25px_rgba(16,185,129,0.2)]' 
+        : 'border-red-600 shadow-[0_0_25px_rgba(239,68,68,0.2)]'
+    }`}>
+      {/* Dynamic Chat Header */}
+      <div className={`px-4 py-2.5 flex items-center justify-between text-xs sm:text-sm border-b ${
+        activeMode === 'defense'
+          ? 'bg-emerald-950/40 border-emerald-600'
+          : 'bg-red-950/40 border-red-600'
+      }`}>
         <div className="flex items-center gap-2">
           <button
             id="chat-back-button"
             onClick={onBackToMenu}
-            className="flex items-center gap-1 text-red-500 hover:text-white px-2 py-0.5 border border-red-600 hover:bg-red-600/20 transition-colors"
+            className={`flex items-center gap-1 px-2 py-0.5 border transition-colors ${
+              activeMode === 'defense'
+                ? 'text-emerald-400 hover:text-white border-emerald-600 hover:bg-emerald-600/20'
+                : 'text-red-500 hover:text-white border-red-600 hover:bg-red-600/20'
+            }`}
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>MENU</span>
           </button>
-          <span className="text-red-500 font-bold tracking-wider flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" />
-            [x_x] DARK-GPT
+          <span className={`font-bold tracking-wider flex items-center gap-1.5 ${
+            activeMode === 'defense' ? 'text-emerald-400' : 'text-red-500'
+          }`}>
+            {activeMode === 'defense' ? <Shield className="w-3.5 h-3.5 text-emerald-400" /> : <Skull className="w-3.5 h-3.5 text-red-500" />}
+            <span>{activeMode === 'defense' ? '[🛡️] DARK-GPT // ASSISTANCE GÉNÉRALE' : '[💀] DARK-GPT // APPRENTISSAGE TECHNIQUE AVANCÉ'}</span>
           </span>
           <span className="text-neutral-400 hidden sm:inline text-xs">
             // {session.title}
@@ -421,22 +549,86 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Active Model Indicator */}
+          {/* History Toggle Button if session has messages */}
+          {messages.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowHistoryMessages(prev => !prev)}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-black/80 border border-neutral-700 hover:border-neutral-500 rounded text-[11px] text-neutral-300 transition-colors"
+              title={showHistoryMessages ? t.hideHistory : t.showHistory}
+            >
+              {showHistoryMessages ? <EyeOff className="w-3.5 h-3.5 text-neutral-400" /> : <Eye className="w-3.5 h-3.5 text-emerald-400" />}
+              <span className="hidden sm:inline">{showHistoryMessages ? t.hideHistory : t.showHistory}</span>
+              <span className="text-[10px] text-neutral-400 font-mono">({messages.length})</span>
+            </button>
+          )}
+
+          {/* Activer dark-gpt cowork Button (Specification Plugin) */}
+          {onToggleCowork && (
+            <button
+              type="button"
+              onClick={onToggleCowork}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded text-[11px] font-bold transition-all cursor-pointer border ${
+                isCoworkActive
+                  ? isGreen
+                    ? 'bg-emerald-600 text-black border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.4)] animate-pulse'
+                    : 'bg-red-600 text-white border-red-400 shadow-[0_0_12px_rgba(239,68,68,0.4)] animate-pulse'
+                  : isGreen
+                    ? 'bg-emerald-950/40 border-emerald-700 text-emerald-300 hover:border-emerald-500 hover:text-white'
+                    : 'bg-red-950/40 border-red-800 text-red-300 hover:border-red-500 hover:text-white'
+              }`}
+              title={isCoworkActive ? "Fermer le panneau dark-gpt cowork" : "Activer dark-gpt cowork (accès direct et validation humaine)"}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{isCoworkActive ? "Désactiver dark-gpt cowork" : "Activer dark-gpt cowork"}</span>
+            </button>
+          )}
+
+          {/* Active Model Indicator with auto-status */}
           <button
             type="button"
             onClick={() => setShowOllamaModal(true)}
-            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-black/70 border border-red-900/80 hover:border-red-500 rounded text-[11px] text-neutral-300 transition-all cursor-pointer hover:shadow-[0_0_8px_rgba(220,38,38,0.3)]"
+            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-black/70 border rounded text-[11px] transition-all cursor-pointer ${
+              ollamaOnline
+                ? 'border-emerald-500/80 text-emerald-400 hover:border-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.25)]'
+                : isGreen
+                  ? 'border-emerald-900/80 text-neutral-300 hover:border-emerald-500'
+                  : 'border-red-900/80 text-neutral-300 hover:border-red-500'
+            }`}
             title="Cliquez pour configurer ou installer Ollama & Dolphin 3"
           >
+            <span className={`w-1.5 h-1.5 rounded-full ${ollamaOnline ? 'bg-emerald-400 animate-pulse' : 'bg-neutral-600'}`}></span>
             <span className="text-neutral-500">MOTEUR :</span>
-            <span className="text-red-400 font-bold">{activeModel}</span>
-            <span className="text-[10px] text-red-500/80 bg-red-950 px-1 py-0.2 rounded border border-red-900/50">config</span>
+            <span className={ollamaOnline ? 'text-emerald-400 font-bold' : isGreen ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
+              {ollamaOnline ? '🐬 DOLPHIN 3 (ONLINE)' : activeModel}
+            </span>
+            <span className="text-[10px] text-neutral-400 bg-neutral-900 px-1 py-0.2 rounded border border-neutral-700">config</span>
+          </button>
+
+          {/* Mac Files Authorization Button */}
+          <button
+            type="button"
+            onClick={() => setShowMacModal(true)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 bg-black/70 border rounded text-[11px] text-neutral-300 transition-all cursor-pointer ${
+              isGreen 
+                ? 'border-neutral-700 hover:border-emerald-500 hover:shadow-[0_0_8px_rgba(16,185,129,0.3)]' 
+                : 'border-neutral-700 hover:border-red-500 hover:shadow-[0_0_8px_rgba(220,38,38,0.3)]'
+            }`}
+            title="Autoriser et inspecter des fichiers ou dossiers de votre Mac"
+          >
+            <HardDrive className={`w-3.5 h-3.5 ${isGreen ? 'text-emerald-400' : 'text-red-400'}`} />
+            <span className="hidden md:inline">FICHIERS MAC</span>
+            <span className="md:hidden">MAC</span>
           </button>
 
           {streamingMsgId && (
             <button
               onClick={finishStreaming}
-              className="flex items-center gap-1 px-2 py-0.5 bg-red-900/60 hover:bg-red-800 text-red-200 border border-red-500 text-[11px] rounded transition-all animate-pulse"
+              className={`flex items-center gap-1 px-2 py-0.5 text-[11px] rounded transition-all animate-pulse border ${
+                isGreen 
+                  ? 'bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200 border-emerald-500' 
+                  : 'bg-red-900/60 hover:bg-red-800 text-red-200 border-red-500'
+              }`}
               title="Passer l'effet machine à écrire"
             >
               <FastForward className="w-3 h-3" />
@@ -448,7 +640,9 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
             id="chat-export-button"
             onClick={handleExportSession}
             title="Exporter l'historique complet (.txt)"
-            className="p-1.5 text-neutral-300 hover:text-white hover:bg-red-600/20 border border-transparent hover:border-red-600 rounded transition-all"
+            className={`p-1.5 text-neutral-300 hover:text-white border border-transparent rounded transition-all ${
+              isGreen ? 'hover:bg-emerald-600/20 hover:border-emerald-600' : 'hover:bg-red-600/20 hover:border-red-600'
+            }`}
           >
             <Download className="w-3.5 h-3.5" />
           </button>
@@ -456,72 +650,59 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
             id="chat-clear-button"
             onClick={handleClearHistory}
             title="Effacer la mémoire"
-            className="p-1.5 text-neutral-300 hover:text-red-400 hover:bg-red-600/20 border border-transparent hover:border-red-600 rounded transition-all"
+            className={`p-1.5 text-neutral-300 border border-transparent rounded transition-all ${
+              isGreen 
+                ? 'hover:text-emerald-400 hover:bg-emerald-600/20 hover:border-emerald-600' 
+                : 'hover:text-red-400 hover:bg-red-600/20 hover:border-red-600'
+            }`}
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      {/* Interactive Plugins & Capabilities Bar */}
-      <div className="bg-neutral-950 border-b border-red-900/60 px-3 py-1.5 flex items-center gap-2 overflow-x-auto text-[11px] select-none">
-        <span className="text-neutral-400 flex items-center gap-1 font-bold whitespace-nowrap">
-          <Layers className="w-3 h-3 text-red-500" />
-          PLUGINS :
+      {/* Autonomous Agent Dynamic Tools Bar */}
+      <div className={`bg-neutral-950 border-b px-3 py-1.5 flex items-center gap-2 overflow-x-auto text-[11px] select-none ${
+        isGreen ? 'border-emerald-900/60' : 'border-red-900/60'
+      }`}>
+        <span className="text-emerald-400 flex items-center gap-1 font-bold whitespace-nowrap">
+          <Sparkles className="w-3 h-3 text-emerald-400" />
+          <span>OUTILS AUTO-DÉCLENCHÉS :</span>
         </span>
 
-        {/* Web Search Plugin */}
-        <button
-          onClick={() => togglePlugin('web_search')}
-          className={`px-2 py-0.5 border flex items-center gap-1 transition-all rounded-sm whitespace-nowrap ${
-            activePlugins.web_search 
-              ? 'bg-red-600 text-white border-red-500 font-bold shadow-[0_0_8px_rgba(239,68,68,0.5)]' 
-              : 'border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700'
-          }`}
-          title="Active la recherche sur le web en direct"
-        >
-          <Globe className="w-2.5 h-2.5" />
-          <span>Recherche Web {activePlugins.web_search ? '[ON]' : '[OFF]'}</span>
-        </button>
+        {/* Dynamic Tool Badges */}
+        <span className="px-2 py-0.5 border border-neutral-800 bg-black text-neutral-300 rounded-sm flex items-center gap-1 whitespace-nowrap">
+          <Globe className="w-2.5 h-2.5 text-blue-400" />
+          <span>Recherche Web</span>
+        </span>
 
-        {/* Code Interpreter Plugin */}
-        <button
-          onClick={() => togglePlugin('code_interpreter')}
-          className={`px-2 py-0.5 border flex items-center gap-1 transition-all rounded-sm whitespace-nowrap ${
-            activePlugins.code_interpreter 
-              ? 'bg-red-950/80 text-red-400 border-red-600 font-bold' 
-              : 'border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700'
-          }`}
-          title="Génération et exécution de scripts Python/Bash"
-        >
-          <FileCode className="w-2.5 h-2.5" />
-          <span>Code Interpreter</span>
-        </button>
+        <span className="px-2 py-0.5 border border-neutral-800 bg-black text-neutral-300 rounded-sm flex items-center gap-1 whitespace-nowrap">
+          <FolderOpen className="w-2.5 h-2.5 text-amber-400" />
+          <span>Dossier Partagé</span>
+        </span>
 
-        {/* Deep Reasoning Plugin */}
-        <button
-          onClick={() => togglePlugin('deep_reasoning')}
-          className={`px-2 py-0.5 border flex items-center gap-1 transition-all rounded-sm whitespace-nowrap ${
-            activePlugins.deep_reasoning 
-              ? 'bg-red-950/80 text-red-400 border-red-600 font-bold' 
-              : 'border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700'
-          }`}
-          title="Affiche le temps et le détail des étapes de réflexion"
-        >
-          <Cpu className="w-2.5 h-2.5" />
+        <span className="px-2 py-0.5 border border-neutral-800 bg-black text-neutral-300 rounded-sm flex items-center gap-1 whitespace-nowrap">
+          <FileCode className="w-2.5 h-2.5 text-emerald-400" />
+          <span>Sandbox Code</span>
+        </span>
+
+        <span className="px-2 py-0.5 border border-neutral-800 bg-black text-neutral-300 rounded-sm flex items-center gap-1 whitespace-nowrap">
+          <Cpu className="w-2.5 h-2.5 text-purple-400" />
           <span>Raisonnement Pas-à-Pas</span>
-        </button>
+        </span>
 
         {/* Typewriter Speed Selector */}
         <div className="ml-auto flex items-center gap-1.5 pl-2 border-l border-neutral-800 text-[11px] whitespace-nowrap">
-          <Gauge className="w-3 h-3 text-red-400" />
+          <Gauge className={`w-3 h-3 ${isGreen ? 'text-emerald-400' : 'text-red-400'}`} />
           <span className="text-neutral-400">Vitesse :</span>
           <button
             type="button"
             onClick={() => setTypingSpeed('slow')}
             className={`px-1.5 py-0.5 rounded transition-colors ${
               typingSpeed === 'slow' 
-                ? 'bg-red-950 text-red-300 font-bold border border-red-600 shadow-[0_0_6px_rgba(220,38,38,0.4)]' 
+                ? isGreen 
+                  ? 'bg-emerald-950 text-emerald-300 font-bold border border-emerald-600 shadow-[0_0_6px_rgba(16,185,129,0.4)]' 
+                  : 'bg-red-950 text-red-300 font-bold border border-red-600 shadow-[0_0_6px_rgba(220,38,38,0.4)]' 
                 : 'text-neutral-500 hover:text-neutral-300'
             }`}
             title="Vitesse lente et posée (idéale pour lire confortablement)"
@@ -533,7 +714,9 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
             onClick={() => setTypingSpeed('normal')}
             className={`px-1.5 py-0.5 rounded transition-colors ${
               typingSpeed === 'normal' 
-                ? 'bg-red-950 text-red-300 font-bold border border-red-600 shadow-[0_0_6px_rgba(220,38,38,0.4)]' 
+                ? isGreen 
+                  ? 'bg-emerald-950 text-emerald-300 font-bold border border-emerald-600 shadow-[0_0_6px_rgba(16,185,129,0.4)]' 
+                  : 'bg-red-950 text-red-300 font-bold border border-red-600 shadow-[0_0_6px_rgba(220,38,38,0.4)]' 
                 : 'text-neutral-500 hover:text-neutral-300'
             }`}
             title="Vitesse moyenne"
@@ -545,7 +728,9 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
             onClick={() => setTypingSpeed('instant')}
             className={`px-1.5 py-0.5 rounded transition-colors ${
               typingSpeed === 'instant' 
-                ? 'bg-red-950 text-red-300 font-bold border border-red-600 shadow-[0_0_6px_rgba(220,38,38,0.4)]' 
+                ? isGreen 
+                  ? 'bg-emerald-950 text-emerald-300 font-bold border border-emerald-600 shadow-[0_0_6px_rgba(16,185,129,0.4)]' 
+                  : 'bg-red-950 text-red-300 font-bold border border-red-600 shadow-[0_0_6px_rgba(220,38,38,0.4)]' 
                 : 'text-neutral-500 hover:text-neutral-300'
             }`}
             title="Affichage instantané"
@@ -559,9 +744,13 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
       <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs sm:text-sm">
         {/* Recommended Dolphin 3 Banner if Ollama is not active */}
         {ollamaOnline === false && !dismissBanner && (
-          <div className="border border-red-700/80 bg-red-950/40 p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 rounded shadow-[0_0_15px_rgba(220,38,38,0.15)]">
+          <div className={`border p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 rounded ${
+            isGreen 
+              ? 'border-emerald-700/80 bg-emerald-950/40 shadow-[0_0_15px_rgba(16,185,129,0.15)]' 
+              : 'border-red-700/80 bg-red-950/40 shadow-[0_0_15px_rgba(220,38,38,0.15)]'
+          }`}>
             <div className="space-y-0.5">
-              <div className="flex items-center gap-1.5 text-red-400 font-bold text-xs">
+              <div className={`flex items-center gap-1.5 font-bold text-xs ${isGreen ? 'text-emerald-400' : 'text-red-400'}`}>
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>EXPÉRIENCE OPTIMALE : ACTIVEZ DOLPHIN 3 EN ARRIÈRE-PLAN</span>
               </div>
@@ -573,7 +762,11 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
               <button
                 type="button"
                 onClick={() => setShowOllamaModal(true)}
-                className="px-3 py-1.5 bg-red-900 hover:bg-red-800 text-white font-bold border border-red-500 rounded text-xs flex items-center gap-1.5 transition-all shadow-[0_0_8px_rgba(220,38,38,0.3)]"
+                className={`px-3 py-1.5 font-bold rounded text-xs flex items-center gap-1.5 transition-all border ${
+                  isGreen 
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-black border-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.3)]' 
+                    : 'bg-red-900 hover:bg-red-800 text-white border-red-500 shadow-[0_0_8px_rgba(220,38,38,0.3)]'
+                }`}
               >
                 <span>Installer / Lancer Dolphin 3</span>
               </button>
@@ -589,19 +782,61 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
           </div>
         )}
 
-        <div className="border border-red-900/60 bg-red-950/10 p-3 text-neutral-400 text-xs leading-relaxed space-y-1">
-          <div className="text-red-500 font-bold">[!] SYSTÈME IA NON CENSURÉ // DARK-GPT v1.1.0</div>
+        <div className={`border p-3 text-neutral-300 text-xs leading-relaxed space-y-1 ${
+          isGreen ? 'border-emerald-900/60 bg-emerald-950/10' : 'border-red-900/60 bg-red-950/10'
+        }`}>
+          <div className={`font-bold ${isGreen ? 'text-emerald-400' : 'text-red-500'}`}>
+            {isGreen ? '[🛡️] SYSTÈME IA SÉCURISÉ // MODE DÉFENSE ACTIF' : '[!] SYSTÈME IA NON CENSURÉ // DARK-GPT v1.1.0'}
+          </div>
           <div>Créé par <span className="text-white font-bold">M4TH4CK3R</span>. Analyse offensive/défensive approfondie, scripts et génération documentaire à la demande.</div>
           <div className="text-neutral-500 text-[11px]">Astuce : Appuyez sur <span className="text-white font-bold">Entrée</span> pour accélérer immédiatement la rédaction machine à écrire.</div>
         </div>
 
-        {messages.map((msg, idx) => {
+        {/* History consultation prompt if not confirmed yet */}
+        {!showHistoryMessages && messages.length > 0 && (
+          <div className="border border-red-700/80 bg-red-950/40 p-4 rounded text-center space-y-3 shadow-lg my-3">
+            <div className="text-white font-bold text-sm flex items-center justify-center gap-2">
+              <Sparkles className="w-4 h-4 text-red-500" />
+              <span>{t.historyPromptTitle}</span>
+              <span className="bg-red-900/60 border border-red-700 text-red-200 text-[11px] px-2 py-0.5 rounded font-mono">
+                {messages.length} {t.historyCount}
+              </span>
+            </div>
+            <p className="text-xs text-neutral-300 max-w-md mx-auto">
+              {t.historyPromptSub}
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowHistoryMessages(true)}
+                className="px-4 py-2 bg-red-900 hover:bg-red-800 text-white font-bold rounded text-xs border border-red-500 cursor-pointer transition-all shadow-[0_0_10px_rgba(239,68,68,0.3)] flex items-center gap-2"
+              >
+                <span>{t.historyPromptYes}</span>
+                <span className="text-[10px] opacity-80 font-mono">({messages.length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMessages([]);
+                  onUpdateSession({ ...session, messages: [] });
+                  setShowHistoryMessages(true);
+                }}
+                className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white font-bold rounded text-xs border border-neutral-700 cursor-pointer transition-all flex items-center gap-2"
+              >
+                <span>{t.historyPromptNo}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {showHistoryMessages && messages.map((msg, idx) => {
           const isStreamingThis = streamingMsgId === msg.id;
           const displayContent = isStreamingThis ? msg.content.slice(0, streamedLength) : msg.content;
           const showDocs = shouldShowExportOptions(idx, msg);
+          const messageKey = msg.id ? `${msg.id}-${idx}` : `msg-${idx}`;
 
           return (
-            <div key={msg.id} className="space-y-2">
+            <div key={messageKey} className="space-y-2">
               {msg.role === 'user' ? (
                 <div className="flex items-start gap-2 bg-neutral-950/50 p-2 border-l-2 border-neutral-600">
                   <span className="text-white font-bold select-none whitespace-nowrap">VOUS &gt;</span>
@@ -611,8 +846,8 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
                 <div className="space-y-2 bg-black border border-neutral-900 p-3 rounded-sm">
                   {/* Assistant Message Header with Thinking Timer */}
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-800 pb-2">
-                    <div className="text-red-500 font-bold flex items-center gap-1.5 select-none">
-                      <span>[x_x] DARK-GPT &gt;</span>
+                    <div className={`${isGreen ? 'text-emerald-400' : 'text-red-500'} font-bold flex items-center gap-1.5 select-none`}>
+                      <span>{isGreen ? '[🛡️] DARK-GPT >' : '[x_x] DARK-GPT >'}</span>
                       {isStreamingThis && (
                         <span className="text-[11px] text-neutral-400 font-normal animate-pulse">
                           (rédaction en cours... [Entrée pour passer])
@@ -621,19 +856,21 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                      {/* Optional Export trigger button at the end of reasoning bar */}
-                      <button
-                        onClick={() => toggleExportMenu(msg.id)}
-                        className={`px-2 py-0.5 border text-[11px] rounded transition-colors flex items-center gap-1 ${
-                          showDocs
-                            ? 'bg-neutral-800 border-neutral-600 text-white'
-                            : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700'
-                        }`}
-                        title="Options d'exportation de documents (PDF/Excel/Word)"
-                      >
-                        <FileText className="w-3 h-3 text-red-500" />
-                        <span>Options Docs</span>
-                      </button>
+                      {/* Export button only when content is substantial or has code/tables */}
+                      {(msg.content?.includes('```') || msg.content?.includes('|') || (msg.content?.length || 0) > 250) && (
+                        <button
+                          onClick={() => toggleExportMenu(msg.id)}
+                          className={`px-2 py-0.5 border text-[11px] rounded transition-colors flex items-center gap-1 ${
+                            showDocs
+                              ? 'bg-neutral-800 border-neutral-600 text-white'
+                              : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700'
+                          }`}
+                          title="Options d'exportation de documents (PDF/Excel/Word)"
+                        >
+                          <FileText className={`w-3 h-3 ${isGreen ? 'text-emerald-400' : 'text-red-500'}`} />
+                          <span>Exporter</span>
+                        </button>
+                      )}
 
                       {/* Reasoning Time Badge */}
                       {msg.reasoningTime && (
@@ -642,7 +879,7 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
                           className="flex items-center gap-1 px-2 py-0.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-300 rounded text-[11px] transition-colors"
                           title="Cliquez pour voir les étapes de raisonnement"
                         >
-                          <Clock className="w-3 h-3 text-red-400" />
+                          <Clock className={`w-3 h-3 ${isGreen ? 'text-emerald-400' : 'text-red-400'}`} />
                           <span>Pensé pendant {msg.reasoningTime}s</span>
                           {expandedReasoning[msg.id] ? (
                             <ChevronDown className="w-3 h-3 text-neutral-400" />
@@ -674,15 +911,82 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
                   <div className="text-neutral-200 font-medium whitespace-pre-wrap leading-relaxed pl-1">
                     {displayContent}
                     {isStreamingThis && (
-                      <span className="inline-block w-2 h-4 ml-0.5 bg-red-500 animate-pulse align-middle" />
+                      <span className={`inline-block w-2 h-4 ml-0.5 animate-pulse align-middle ${isGreen ? 'bg-emerald-400' : 'bg-red-500'}`} />
                     )}
                   </div>
+
+                  {/* Agent Loop Execution Plan (Specification D) */}
+                  {msg.agentLoop && !isStreamingThis && (
+                    <div className="bg-neutral-950 border border-neutral-800 p-2.5 rounded text-[11px] font-mono space-y-1.5 mt-2">
+                      <div className="text-emerald-400 font-bold flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>BOUCLE AGENTIQUE // PLANIFICATION & EXÉCUTION</span>
+                      </div>
+                      <div className="text-neutral-300">
+                        <span className="text-neutral-500">OBJECTIF : </span>
+                        <span className="font-semibold text-neutral-200">{msg.agentLoop.objective}</span>
+                      </div>
+                      <div className="space-y-0.5 pt-1">
+                        <div className="text-neutral-500 font-bold">SOUS-ÉTAPES :</div>
+                        {msg.agentLoop.steps.map((st, sIdx) => (
+                          <div key={sIdx} className="flex items-center gap-1.5 pl-2 text-neutral-300">
+                            <span className="text-emerald-500 font-bold">{sIdx + 1}.</span>
+                            <span>{st}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {msg.agentLoop.executedTools && msg.agentLoop.executedTools.length > 0 && (
+                        <div className="pt-1 flex items-center gap-1 flex-wrap">
+                          <span className="text-neutral-500">OUTILS ACTIFS :</span>
+                          {msg.agentLoop.executedTools.map((tId, tIdx) => (
+                            <span key={tIdx} className="px-1.5 py-0.5 bg-neutral-900 border border-neutral-700 text-emerald-300 rounded text-[10px]">
+                              {tId === 'web_search' ? '🌐 Recherche Web' : tId === 'file_io' ? '📂 Fichiers partagés' : '⚡ Bac à sable Code'}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="text-[10px] text-neutral-400 pt-1 border-t border-neutral-900 flex items-center gap-1">
+                        <Check className="w-3 h-3 text-emerald-400" />
+                        <span>{msg.agentLoop.verification}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Risky Action Confirmation Card (Specification D) */}
+                  {msg.requiresConfirmation && !isStreamingThis && (
+                    <div className="mt-3 p-3 bg-red-950/60 border-2 border-red-600 rounded space-y-2.5 shadow-[0_0_15px_rgba(220,38,38,0.3)]">
+                      <div className="flex items-center gap-2 text-red-400 font-bold text-xs sm:text-sm">
+                        <AlertTriangle className="w-4 h-4 text-red-500 animate-bounce" />
+                        <span>ACTION SENSIBLE DÉTECTÉE // VALIDATION OBLIGATOIRE</span>
+                      </div>
+                      <p className="text-xs text-neutral-200 leading-relaxed">
+                        {msg.riskDetails || "Cette opération modifie ou supprime définitivement des éléments dans le dossier partagé."}
+                      </p>
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleConfirmAction(msg)}
+                          className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-md"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Confirmer et exécuter</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCancelAction(msg)}
+                          className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white rounded text-xs border border-neutral-700 transition-colors cursor-pointer"
+                        >
+                          <span>Annuler l'action</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Web Search Sources if available */}
                   {msg.sources && msg.sources.length > 0 && !isStreamingThis && (
                     <div className="mt-2 pt-2 border-t border-neutral-900 space-y-1">
                       <div className="text-neutral-400 text-[11px] font-bold flex items-center gap-1">
-                        <Globe className="w-3 h-3 text-red-500" />
+                        <Globe className={`w-3 h-3 ${isGreen ? 'text-emerald-400' : 'text-red-500'}`} />
                         SOURCES & VÉRIFICATIONS WEB :
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
@@ -692,7 +996,9 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
                             href={src.url}
                             target="_blank"
                             rel="noreferrer"
-                            className="flex items-center justify-between p-1.5 bg-neutral-950 hover:bg-neutral-900 border border-neutral-800 text-[11px] text-neutral-300 hover:text-red-400 rounded transition-colors group"
+                            className={`flex items-center justify-between p-1.5 bg-neutral-950 hover:bg-neutral-900 border border-neutral-800 text-[11px] text-neutral-300 rounded transition-colors group ${
+                              isGreen ? 'hover:text-emerald-400' : 'hover:text-red-400'
+                            }`}
                           >
                             <span className="truncate flex-1 font-semibold">{src.title}</span>
                             <ExternalLink className="w-3 h-3 ml-1 opacity-50 group-hover:opacity-100 flex-shrink-0" />
@@ -711,16 +1017,20 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
                           <span className="text-neutral-500 text-[10px] font-bold px-1">DOCUMENTS :</span>
                           <button
                             onClick={() => exportToPdf(`rapport_${Date.now()}`, 'Rapport DARK-GPT', msg.content)}
-                            className="flex items-center gap-1 px-2 py-0.5 bg-black hover:bg-red-950/60 border border-neutral-800 hover:border-red-600 text-neutral-300 hover:text-white rounded transition-all"
+                            className={`flex items-center gap-1 px-2 py-0.5 bg-black border border-neutral-800 text-neutral-300 hover:text-white rounded transition-all ${
+                              isGreen ? 'hover:bg-emerald-950/60 hover:border-emerald-600' : 'hover:bg-red-950/60 hover:border-red-600'
+                            }`}
                             title="Télécharger en document PDF"
                           >
-                            <FileText className="w-3 h-3 text-red-500" />
+                            <FileText className={`w-3 h-3 ${isGreen ? 'text-emerald-400' : 'text-red-500'}`} />
                             <span>PDF</span>
                           </button>
 
                           <button
                             onClick={() => exportToExcel(`analyse_${Date.now()}`, 'Export Excel', msg.content)}
-                            className="flex items-center gap-1 px-2 py-0.5 bg-black hover:bg-red-950/60 border border-neutral-800 hover:border-red-600 text-neutral-300 hover:text-white rounded transition-all"
+                            className={`flex items-center gap-1 px-2 py-0.5 bg-black border border-neutral-800 text-neutral-300 hover:text-white rounded transition-all ${
+                              isGreen ? 'hover:bg-emerald-950/60 hover:border-emerald-600' : 'hover:bg-red-950/60 hover:border-red-600'
+                            }`}
                             title="Télécharger en tableur Excel (.xlsx)"
                           >
                             <Table className="w-3 h-3 text-emerald-500" />
@@ -729,7 +1039,9 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
 
                           <button
                             onClick={() => exportToDocx(`document_${Date.now()}`, 'Document DARK-GPT', msg.content)}
-                            className="flex items-center gap-1 px-2 py-0.5 bg-black hover:bg-red-950/60 border border-neutral-800 hover:border-red-600 text-neutral-300 hover:text-white rounded transition-all"
+                            className={`flex items-center gap-1 px-2 py-0.5 bg-black border border-neutral-800 text-neutral-300 hover:text-white rounded transition-all ${
+                              isGreen ? 'hover:bg-emerald-950/60 hover:border-emerald-600' : 'hover:bg-red-950/60 hover:border-red-600'
+                            }`}
                             title="Télécharger en document Word (.docx)"
                           >
                             <FileText className="w-3 h-3 text-blue-500" />
@@ -742,7 +1054,9 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
                       {msg.content.includes('```') && (
                         <button
                           onClick={() => exportSourceCode(`script_${Date.now()}`, extractCode(msg.content), 'py')}
-                          className="flex items-center gap-1 px-2 py-1 bg-neutral-950 hover:bg-red-950/60 border border-neutral-800 hover:border-red-600 text-neutral-300 hover:text-white rounded transition-all"
+                          className={`flex items-center gap-1 px-2 py-1 bg-neutral-950 border border-neutral-800 text-neutral-300 hover:text-white rounded transition-all ${
+                            isGreen ? 'hover:bg-emerald-950/60 hover:border-emerald-600' : 'hover:bg-red-950/60 hover:border-red-600'
+                          }`}
                           title="Télécharger le script de code (.py)"
                         >
                           <FileCode className="w-3 h-3 text-amber-500" />
@@ -782,12 +1096,16 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
 
         {/* Real-time Thinking & Spinner with Live Elapsed Seconds Counter */}
         {loading && (
-          <div className="bg-neutral-950/80 border border-red-900/60 p-3 rounded space-y-1.5 animate-pulse">
-            <div className="flex items-center gap-2 text-red-500 font-bold text-xs sm:text-sm">
-              <Clock className="w-4 h-4 text-red-500 animate-spin" />
-              <span>[x_x] DARK-GPT réfléchit ({elapsedTime.toFixed(1)}s) {spinnerText}</span>
+          <div className={`bg-neutral-950/80 border p-3 rounded space-y-1.5 animate-pulse ${
+            isGreen ? 'border-emerald-900/60' : 'border-red-900/60'
+          }`}>
+            <div className={`flex items-center gap-2 font-bold text-xs sm:text-sm ${
+              isGreen ? 'text-emerald-400' : 'text-red-500'
+            }`}>
+              <Clock className={`w-4 h-4 animate-spin ${isGreen ? 'text-emerald-400' : 'text-red-500'}`} />
+              <span>{isGreen ? '[🛡️] DARK-GPT analyse' : '[x_x] DARK-GPT réfléchit'} ({elapsedTime.toFixed(1)}s) {spinnerText}</span>
             </div>
-            <div className="text-neutral-500 text-[11px] pl-6 font-mono">
+            <div className="text-neutral-400 text-[11px] pl-6 font-mono">
               &gt; Évaluation des vecteurs techniques, analyse mémoire et synthèse...
             </div>
           </div>
@@ -796,10 +1114,12 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Red Terminal Command Input */}
+      {/* Terminal Command Input */}
       <form
         onSubmit={handleSend}
-        className="border-t border-red-600 bg-black p-3 flex items-center gap-2"
+        className={`border-t bg-black p-3 flex items-center gap-2 ${
+          isGreen ? 'border-emerald-600' : 'border-red-600'
+        }`}
       >
         <span className="text-white font-bold select-none text-sm sm:text-base">VOUS &gt;</span>
         <input
@@ -821,14 +1141,28 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
           className="flex-1 bg-transparent text-white placeholder-neutral-600 text-xs sm:text-sm focus:outline-none"
         />
         <button
+          type="button"
+          onClick={() => setShowMacModal(true)}
+          className={`p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-900 border border-neutral-800 rounded transition-all cursor-pointer ${
+            isGreen ? 'hover:border-emerald-600' : 'hover:border-red-600'
+          }`}
+          title="Ouvrir l'accès aux fichiers de votre Mac"
+        >
+          <FolderOpen className={`w-4 h-4 ${isGreen ? 'text-emerald-400' : 'text-red-500'}`} />
+        </button>
+        <button
           id="terminal-chat-send-btn"
           type="submit"
           disabled={loading || (!input.trim() && !streamingMsgId)}
-          className="px-3.5 py-1.5 bg-red-950/60 border border-red-600 hover:bg-red-600 text-white text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5"
+          className={`px-3.5 py-1.5 border text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 ${
+            isGreen
+              ? 'bg-emerald-600 hover:bg-emerald-500 border-emerald-400 text-black shadow-[0_0_8px_rgba(16,185,129,0.3)]'
+              : 'bg-red-950/60 border-red-600 hover:bg-red-600 text-white'
+          }`}
         >
           {streamingMsgId ? (
             <>
-              <FastForward className="w-3.5 h-3.5 text-white" />
+              <FastForward className="w-3.5 h-3.5 text-current" />
               <span className="hidden sm:inline">PASSER</span>
             </>
           ) : (
@@ -847,6 +1181,16 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
         onConnected={() => {
           setOllamaOnline(true);
           setActiveModel('🐬 dolphin3 (Ollama)');
+        }}
+      />
+
+      {/* Mac File System Authorization & Explorer Modal */}
+      <MacFileAccessModal
+        isOpen={showMacModal}
+        onClose={() => setShowMacModal(false)}
+        onInjectFileToChat={(file) => {
+          setInput(`[FICHIER MAC : ${file.name}]\nChemin : ${file.path}\n\n\`\`\`\n${file.content}\n\`\`\`\n\nPeux-tu analyser ce fichier en détail, vérifier sa sécurité et optimiser son code ?`);
+          inputRef.current?.focus();
         }}
       />
     </div>

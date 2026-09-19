@@ -5,6 +5,18 @@ export interface AgentLoopData {
   verification: string;
 }
 
+// ==== Double interface (panneau Artifact façon Claude) ====
+export type ThemeStyle = 'minimalist' | 'hacker';
+export type ThemeLuminosity = 'light' | 'dark';
+
+export interface Artifact {
+  id: string;
+  title: string;
+  code: string;
+  language: string;
+  isOpen: boolean;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';

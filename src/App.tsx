@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AppView, Session } from './types.ts';
+import { AppView, Session, Artifact } from './types.ts';
 import { StartupAnimation } from './components/StartupAnimation.tsx';
 import { AsciiBanner } from './components/AsciiBanner.tsx';
 import { TerminalChat } from './components/TerminalChat.tsx';
@@ -10,6 +10,7 @@ import { UpdatesView } from './components/UpdatesView.tsx';
 import { OllamaInstallerModal } from './components/OllamaInstallerModal.tsx';
 import { DualModeSelector } from './components/DualModeSelector.tsx';
 import { DarkGptCoworkPanel } from './components/DarkGptCoworkPanel.tsx';
+import { ArtifactPanel } from './components/ArtifactPanel.tsx';
 import { GitHubSyncModal } from './components/GitHubSyncModal.tsx';
 import { Language, translations } from './utils/i18n.ts';
 import { 
@@ -43,6 +44,7 @@ export default function App() {
   const [hasConfirmedHistory, setHasConfirmedHistory] = useState<boolean>(false);
   const [ollamaStatus, setOllamaStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [isCoworkActive, setIsCoworkActive] = useState<boolean>(false);
+  const [artifact, setArtifact] = useState<Artifact | null>(null);
   const [showGitHubSyncModal, setShowGitHubSyncModal] = useState<boolean>(false);
   const isGreen = activeMode === 'defense';
 
@@ -455,16 +457,30 @@ export default function App() {
             />
           </div>
         ) : currentView === 'chat' ? (
-          <TerminalChat
-            session={activeSession}
-            language={language}
-            activeMode={activeMode}
-            defaultShowHistory={hasConfirmedHistory}
-            onUpdateSession={(updated) => setActiveSession(updated)}
-            onBackToMenu={() => setCurrentView('welcome')}
-            onToggleCowork={() => setIsCoworkActive(prev => !prev)}
-            isCoworkActive={isCoworkActive}
-          />
+          <div className="h-full flex gap-2 overflow-hidden">
+            <div className={artifact?.isOpen ? 'w-1/2 h-full overflow-hidden' : 'w-full h-full overflow-hidden'}>
+              <TerminalChat
+                session={activeSession}
+                language={language}
+                activeMode={activeMode}
+                defaultShowHistory={hasConfirmedHistory}
+                onUpdateSession={(updated) => setActiveSession(updated)}
+                onBackToMenu={() => setCurrentView('welcome')}
+                onToggleCowork={() => setIsCoworkActive(prev => !prev)}
+                isCoworkActive={isCoworkActive}
+                onOpenArtifact={(a) => setArtifact({ ...a, id: crypto.randomUUID(), isOpen: true })}
+              />
+            </div>
+            {artifact?.isOpen && (
+              <div className="w-1/2 h-full overflow-hidden">
+                <ArtifactPanel
+                  artifact={artifact}
+                  activeMode={activeMode}
+                  onClose={() => setArtifact(null)}
+                />
+              </div>
+            )}
+          </div>
         ) : currentView === 'projects' || currentView === 'create_project' || currentView === 'edit_project' || currentView === 'run_project' ? (
           <ProjectManager
             initialView={currentView === 'create_project' ? 'create' : currentView === 'edit_project' ? 'edit' : currentView === 'run_project' ? 'run' : 'list'}

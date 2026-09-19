@@ -6,6 +6,51 @@
     --red-glow: #ff0033;
   }
 
+  /* ==== Système de thèmes (2 styles x 2 luminosités) ====
+     Classe à poser sur le conteneur racine : theme-<style>-<luminosité>
+     ex : theme-minimalist-dark, theme-hacker-light                    */
+  .theme-minimalist-light {
+    --bg-main: #fbfbfa;
+    --text-main: #1f1f1e;
+    --border-main: #e5e5e3;
+    --accent-main: #d97706;
+    --bg-chat-user: #f3f3f2;
+    --font-family: 'Inter', -apple-system, sans-serif;
+  }
+  .theme-minimalist-dark {
+    --bg-main: #1e1e1f;
+    --text-main: #e3e3e2;
+    --border-main: #2e2e30;
+    --accent-main: #f59e0b;
+    --bg-chat-user: #2a2a2c;
+    --font-family: 'Inter', -apple-system, sans-serif;
+  }
+  .theme-hacker-dark {
+    --bg-main: #000000;
+    --text-main: #ff0000;
+    --border-main: #ff0000;
+    --accent-main: #ef4444;
+    --bg-chat-user: #110000;
+    --font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+  }
+  .theme-hacker-light {
+    --bg-main: #f5f5f5;
+    --text-main: #cc0000;
+    --border-main: #cc0000;
+    --accent-main: #dc2626;
+    --bg-chat-user: #fee2e2;
+    --font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+  }
+
+  /* Applique le thème actif dès qu'une classe theme-* est posée en amont.
+     Sans classe theme-*, on garde l'ancien rendu noir/rouge par défaut. */
+  [class*="theme-"] {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: var(--font-family);
+    transition: color 0.3s ease, background-color 0.3s ease;
+  }
+
   body {
     background-color: #000000;
     color: #f8fafc;

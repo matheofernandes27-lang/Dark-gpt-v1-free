@@ -42,6 +42,7 @@ interface TerminalChatProps {
   onBackToMenu: () => void;
   onToggleCowork?: () => void;
   isCoworkActive?: boolean;
+  onOpenArtifact?: (artifact: { title: string; code: string; language: string }) => void;
 }
 
 export const TerminalChat: React.FC<TerminalChatProps> = ({
@@ -52,7 +53,8 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
   onUpdateSession,
   onBackToMenu,
   onToggleCowork,
-  isCoworkActive = false
+  isCoworkActive = false,
+  onOpenArtifact
 }) => {
   const isGreen = activeMode === 'defense';
   const t = translations[language];
@@ -499,6 +501,17 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
   const extractCode = (text: string): string => {
     const match = text.match(/```[a-z]*\n([\s\S]*?)```/i);
     return match ? match[1] : text;
+  };
+
+  // Extrait le dernier bloc de code + son langage, pour le panneau Artifact.
+  const extractCodeBlock = (text: string): { code: string; language: string } | null => {
+    const re = /```([a-zA-Z0-9]*)\n([\s\S]*?)```/g;
+    let m: RegExpExecArray | null;
+    let last: { code: string; language: string } | null = null;
+    while ((m = re.exec(text)) !== null) {
+      last = { language: (m[1] || 'text').toLowerCase(), code: m[2] };
+    }
+    return last;
   };
 
   // Determine if the user or message explicitly asked for a document export
@@ -1061,6 +1074,29 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
                         >
                           <FileCode className="w-3 h-3 text-amber-500" />
                           <span>CODE (.py)</span>
+                        </button>
+                      )}
+
+                      {/* Ouvrir dans le panneau Artifact (double interface façon Claude) */}
+                      {onOpenArtifact && msg.content.includes('```') && (
+                        <button
+                          onClick={() => {
+                            const block = extractCodeBlock(msg.content);
+                            if (block) {
+                              onOpenArtifact({
+                                title: `Artifact ${block.language.toUpperCase()}`,
+                                code: block.code,
+                                language: block.language
+                              });
+                            }
+                          }}
+                          className={`flex items-center gap-1 px-2 py-1 bg-neutral-950 border border-neutral-800 text-neutral-300 hover:text-white rounded transition-all ${
+                            isGreen ? 'hover:bg-emerald-950/60 hover:border-emerald-600' : 'hover:bg-red-950/60 hover:border-red-600'
+                          }`}
+                          title="Ouvrir le code dans le panneau (aperçu + code)"
+                        >
+                          <FileCode className="w-3 h-3 text-sky-400" />
+                          <span>OUVRIR L'APERÇU</span>
                         </button>
                       )}
 

@@ -43,3 +43,11 @@ Thumbs.db
 # Project specific
 Dark-gpt.app/
 config.json
+
+# Dépendances & runtime (ajout dark-gpt)
+node_modules/
+package-lock.json
+.claude/
+data/sessions/
+data/projects/
+dark-gpt-workspace/

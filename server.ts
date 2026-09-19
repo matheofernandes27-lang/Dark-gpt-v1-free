@@ -5,12 +5,29 @@ import os from 'os';
 import { spawn, execSync } from 'child_process';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
+import { coworkRouter } from './coworkAgent.ts';
+import { generateImage, listImageProviders } from './imagePlugins.ts';
 
 const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// ==== Dark-GPT Cowork (agent local confiné + validation humaine) ====
+app.use('/api/cowork/agent', coworkRouter);
+
+// ==== Génération d'images LÉGITIME (plugins) — remplace le bot Dreamina ====
+app.get('/api/images/providers', (_req, res) => res.json(listImageProviders()));
+app.post('/api/images/generate', async (req, res) => {
+  try {
+    const { prompt, provider, width, height } = req.body || {};
+    const img = await generateImage({ prompt, width, height }, provider);
+    res.json({ success: true, ...img });
+  } catch (e: any) {
+    res.status(500).json({ success: false, error: e?.message || 'Échec génération image.' });
+  }
+});
 
 // Project Constants
 const APP_NAME = "Dark-gpt";
@@ -474,160 +491,22 @@ app.post('/api/projects/:name/run', (req, res) => {
   }
 });
 
-// Dreamina Browser Automation Endpoint
-app.post('/api/cowork/dreamina-automation', (req, res) => {
+// Dreamina Browser Automation Endpoint — NEUTRALISÉ (remplacé par le plugin d'images légitime)
+// L'ancien code générait un bot headless pour consommer les crédits gratuits de Dreamina/ByteDance
+// (contraire aux conditions d'usage). Il est désactivé au profit de /api/images/generate
+// (Pollinations gratuit, ou ta clé Gemini/OpenAI). Voir imagePlugins.ts.
+app.post('/api/cowork/dreamina-automation', async (req, res) => {
   try {
-    const { prompt, outputPath = 'assets/generated_image.png' } = req.body;
-    if (!prompt) {
-      return res.status(400).json({ error: 'Prompt is required' });
-    }
-
-    // High quality Python/Playwright automation script for Dreamina (CapCut/ByteDance free daily credits)
-    const pythonScript = `#!/usr/bin/env python3
-"""
-DARK-GPT // SCRIPT D'AUTOMATISATION DREAMINA (CRÉDITS GRATUITS)
-Automate headless browser for Dreamina (https://dreamina.capcut.com)
-Auteur: dark-gpt cowork by M4TH4CK3R
-"""
-import os
-import sys
-import time
-import asyncio
-from pathlib import Path
-
-try:
-    from playwright.async_api import async_playwright
-except ImportError:
-    print("[!] Playwright non installé. Exécutez : pip install playwright && playwright install chromium")
-    sys.exit(1)
-
-PROMPT = ${JSON.stringify(prompt)}
-OUTPUT_PATH = ${JSON.stringify(outputPath)}
-DREAMINA_URL = "https://dreamina.capcut.com/ai-tool/image/generate"
-
-async def run_dreamina_automation():
-    print(f"[*] Initialisation du navigateur d'arrière-plan pour Dreamina...")
-    os.makedirs(os.path.dirname(OUTPUT_PATH) or '.', exist_ok=True)
-    
-    async with async_playwright() as p:
-        # Lancement en arrière-plan avec session utilisateur pour conserver les crédits gratuits
-        user_data_dir = os.path.expanduser("~/.darkgpt_dreamina_profile")
-        browser = await p.chromium.launch_persistent_context(
-            user_data_dir=user_data_dir,
-            headless=True,
-            args=["--no-sandbox", "--disable-setuid-sandbox"]
-        )
-        
-        page = await browser.new_page()
-        print(f"[*] Connexion à Dreamina ({DREAMINA_URL})...")
-        await page.goto(DREAMINA_URL, wait_until="networkidle", timeout=60000)
-        
-        # Injection du prompt dans la zone de texte Dreamina
-        print(f"[*] Injection du prompt : '{PROMPT}'")
-        textarea_selector = "textarea, [contenteditable='true'], input[placeholder*='prompt' i]"
-        await page.wait_for_selector(textarea_selector, timeout=20000)
-        await page.fill(textarea_selector, PROMPT)
-        
-        # Clic sur le bouton de génération (consomme les crédits gratuits quotidiens)
-        print("[*] Déclenchement de la génération avec crédits gratuits quotidiens...")
-        generate_btn = "button:has-text('Generate'), button:has-text('Générer'), button[class*='generate' i]"
-        await page.click(generate_btn)
-        
-        # Attente de la génération et téléchargement de l'image
-        print("[*] Attente du rendu haute résolution...")
-        await page.wait_for_timeout(12000)
-        
-        # Récupération de l'image générée
-        img_selector = "img[class*='result' i], img[src*='tos-maliva' i], img[src*='byteoversea' i]"
-        await page.wait_for_selector(img_selector, timeout=30000)
-        img_element = await page.query_selector(img_selector)
-        
-        if img_element:
-            img_src = await img_element.get_attribute("src")
-            print(f"[+] Image générée avec succès : {img_src}")
-            # Sauvegarde locale
-            image_bytes = await img_element.screenshot()
-            with open(OUTPUT_PATH, "wb") as f:
-                f.write(image_bytes)
-            print(f"[✓] Image sauvegardée dans : {OUTPUT_PATH}")
-        else:
-            print("[!] Échec de récupération de l'élément image.")
-            
-        await browser.close()
-        print("[+] Automatisation terminée.")
-
-if __name__ == '__main__':
-    asyncio.run(run_dreamina_automation())
-`;
-
-    // Node.js Puppeteer equivalent
-    const nodeScript = `/**
- * DARK-GPT // DREAMINA BROWSER AUTOMATION (NODE.JS / PUPPETEER)
- * Prompt: ${prompt.replace(/\*\//g, '')}
- */
-const puppeteer = require('puppeteer');
-const fs = require('fs');
-const path = require('path');
-
-async function generateWithDreamina() {
-  const promptText = ${JSON.stringify(prompt)};
-  const targetPath = ${JSON.stringify(outputPath)};
-  console.log('[*] Lancement du bot Dreamina en tâche de fond...');
-  const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
-  const page = await browser.newPage();
-  await page.goto('https://dreamina.capcut.com/ai-tool/image/generate', { waitUntil: 'networkidle2' });
-  console.log('[*] Injection du prompt dans Dreamina...');
-  await page.type('textarea', promptText);
-  await page.keyboard.press('Enter');
-  await new Promise(r => setTimeout(r, 10000));
-  console.log('[✓] Image Dreamina récupérée et injectée dans ' + targetPath);
-  await browser.close();
-}
-generateWithDreamina();
-`;
-
-    // Generate high quality SVG / Canvas fallback data URL representation of the image
-    const safeTitle = prompt.slice(0, 45).replace(/[<>&"]/g, '');
-    const svgImage = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
-  <defs>
-    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0f172a" />
-      <stop offset="50%" stop-color="#1e1b4b" />
-      <stop offset="100%" stop-color="#022c22" />
-    </linearGradient>
-    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#10b981" />
-      <stop offset="100%" stop-color="#38bdf8" />
-    </linearGradient>
-  </defs>
-  <rect width="800" height="600" fill="url(#g1)" />
-  <circle cx="400" cy="240" r="130" fill="none" stroke="url(#accent)" stroke-width="3" opacity="0.8" />
-  <circle cx="400" cy="240" r="80" fill="#10b981" opacity="0.15" />
-  <path d="M 320 280 L 400 160 L 480 280 Z" fill="none" stroke="#38bdf8" stroke-width="2.5" />
-  <circle cx="400" cy="240" r="12" fill="#10b981" />
-  <text x="400" y="420" font-family="monospace" font-size="18" fill="#10b981" font-weight="bold" text-anchor="middle">
-    DREAMINA // AI GENERATED ASSET
-  </text>
-  <text x="400" y="455" font-family="sans-serif" font-size="14" fill="#94a3b8" text-anchor="middle">
-    ${safeTitle}
-  </text>
-  <text x="400" y="485" font-family="monospace" font-size="11" fill="#64748b" text-anchor="middle">
-    Credits: Free Daily Quota • Resolution: 800x600 • Model: Dreamina v3
-  </text>
-</svg>`;
-    const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svgImage).toString('base64')}`;
-
-    res.json({
+    const { prompt } = req.body || {};
+    const img = await generateImage({ prompt }, undefined);
+    return res.json({
       success: true,
-      prompt,
-      outputPath,
-      pythonScript,
-      nodeScript,
-      dataUrl,
-      explanation: `Script d'automatisation Dreamina prêt. Il navigue sur dreamina.capcut.com, injecte le prompt "${prompt}", exploite les crédits gratuits journaliers et télécharge le fichier vers ${outputPath}.`
+      provider: img.provider,
+      dataUrl: img.dataUrl,
+      notice: "Bot Dreamina désactivé : image générée via un fournisseur légitime et gratuit.",
     });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (e: any) {
+    return res.status(500).json({ success: false, error: e?.message || 'Échec génération image.' });
   }
 });
 

@@ -297,13 +297,6 @@ export default function App() {
             <span>{isGreen ? '[🛡️]' : '[x_x]'}</span>
             <span>DARK-GPT</span>
           </div>
-          <span className={`text-[10px] px-1.5 py-0.5 hidden sm:inline border ${
-            isGreen 
-              ? 'border-emerald-800 bg-emerald-950/30 text-emerald-400' 
-              : 'border-red-900 bg-red-950/30 text-neutral-400'
-          }`}>
-            BY M4TH4CK3R
-          </span>
           <button
             onClick={() => setUiStyle('minimal')}
             title="Passer à l'interface claire (type Claude)"
@@ -411,8 +404,8 @@ export default function App() {
             <span className="truncate max-w-[100px] sm:max-w-[140px]">{activeSession.title}</span>
           </button>
 
-          {/* View Mode Toggle (CLI vs GUI) */}
-          <div className={`flex border text-[10px] ${isGreen ? 'border-emerald-900/80' : 'border-red-900/80'}`}>
+          {/* View Mode Toggle (CLI vs GUI) — masqué sur écrans normaux pour alléger */}
+          <div className={`hidden xl:flex border text-[10px] ${isGreen ? 'border-emerald-900/80' : 'border-red-900/80'}`}>
             <button
               onClick={() => setViewMode('terminal')}
               title="Command Line Interface (Mode terminal pur)"
@@ -441,13 +434,6 @@ export default function App() {
             </button>
           </div>
 
-          <button
-            onClick={() => setCurrentView('startup')}
-            title="Rejouer l'animation de démarrage cyberpunk"
-            className={`text-[10px] text-neutral-500 px-1.5 py-0.5 ${isGreen ? 'hover:text-emerald-400' : 'hover:text-red-500'}`}
-          >
-            REPLAY
-          </button>
         </div>
       </header>
 

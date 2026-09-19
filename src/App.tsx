@@ -11,6 +11,7 @@ import { OllamaInstallerModal } from './components/OllamaInstallerModal.tsx';
 import { DualModeSelector } from './components/DualModeSelector.tsx';
 import { DarkGptCoworkPanel } from './components/DarkGptCoworkPanel.tsx';
 import { ArtifactPanel } from './components/ArtifactPanel.tsx';
+import { MinimalChat } from './components/MinimalChat.tsx';
 import { GitHubSyncModal } from './components/GitHubSyncModal.tsx';
 import { Language, translations } from './utils/i18n.ts';
 import { 
@@ -45,6 +46,7 @@ export default function App() {
   const [ollamaStatus, setOllamaStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [isCoworkActive, setIsCoworkActive] = useState<boolean>(false);
   const [artifact, setArtifact] = useState<Artifact | null>(null);
+  const [uiStyle, setUiStyle] = useState<'terminal' | 'minimal'>('terminal');
   const [showGitHubSyncModal, setShowGitHubSyncModal] = useState<boolean>(false);
   const isGreen = activeMode === 'defense';
 
@@ -269,6 +271,11 @@ export default function App() {
     }
   };
 
+  // Interface claire type Claude (mode minimaliste) — plein écran, épurée.
+  if (uiStyle === 'minimal' && currentView !== 'startup') {
+    return <MinimalChat onExit={() => setUiStyle('terminal')} />;
+  }
+
   return (
     <div id="dark-gpt-app" className="relative w-screen h-screen bg-black text-white font-mono flex flex-col overflow-hidden selection:bg-red-600 selection:text-white">
       {/* Scanline FX Overlay */}
@@ -297,6 +304,14 @@ export default function App() {
           }`}>
             BY M4TH4CK3R
           </span>
+          <button
+            onClick={() => setUiStyle('minimal')}
+            title="Passer à l'interface claire (type Claude)"
+            className="text-[10px] font-bold border border-neutral-700 hover:border-white text-neutral-300 hover:text-white px-2 py-0.5 rounded flex items-center gap-1.5 transition-colors"
+          >
+            <Sparkles className="w-3 h-3" />
+            <span className="hidden sm:inline">Mode clair</span>
+          </button>
           <button
             onClick={() => setCurrentView('welcome')}
             className={`text-[10px] font-bold border px-2 py-0.5 flex items-center gap-1.5 transition-colors ${

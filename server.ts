@@ -72,7 +72,7 @@ const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY);
 let currentConfig = {
   api_key: process.env.GEMINI_API_KEY || "",
   system_message: DEFAULT_SYSTEM_MESSAGE,
-  model: hasGeminiKey ? "gemini-3.8-flash" : (process.env.DEFAULT_MODEL || "dolphin3"),
+  model: hasGeminiKey ? "gemini-3.6-flash" : (process.env.DEFAULT_MODEL || "dolphin3"),
   server_url: process.env.OLLAMA_SERVER_URL || "http://127.0.0.1:11434",
   provider: (hasGeminiKey ? "gemini" : (process.env.DEFAULT_PROVIDER || "simulation")) as "gemini" | "ollama" | "simulation",
   language: "French"
@@ -957,7 +957,7 @@ Pour votre sécurité, cette action ne peut pas être exécutée automatiquement
           try {
             const modelToUse = currentConfig.model && currentConfig.model.startsWith('gemini')
               ? currentConfig.model 
-              : 'gemini-3.8-flash';
+              : 'gemini-3.6-flash';
             activeModelUsed = modelToUse;
 
             const timeoutPromise = new Promise((_, reject) =>
@@ -991,7 +991,8 @@ Pour votre sécurité, cette action ne peut pas être exécutée automatiquement
                 generatedText = rawText;
               }
             }
-          } catch {
+          } catch (gemErr: any) {
+            console.error('[GEMINI] échec:', gemErr?.message || gemErr);
             activeModelUsed = 'DARK-GPT Engine';
           }
         }

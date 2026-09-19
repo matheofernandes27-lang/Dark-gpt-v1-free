@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
@@ -7,6 +8,7 @@ import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import { coworkRouter } from './coworkAgent.ts';
 import { generateImage, listImageProviders } from './imagePlugins.ts';
+import { generateText } from './textProviders.ts';
 
 const app = express();
 const PORT = 3000;
@@ -992,6 +994,30 @@ Pour votre sécurité, cette action ne peut pas être exécutée automatiquement
           } catch {
             activeModelUsed = 'DARK-GPT Engine';
           }
+        }
+      }
+
+      // 2b. MOTEUR DE TEXTE GRATUIT (Pollinations) — vraie réponse IA sans clé ni Ollama.
+      if (!generatedText) {
+        try {
+          const convo = messages
+            .filter((m: any) => m.role !== 'system')
+            .slice(-8)
+            .map((m: any) => ({
+              role: (m.role === 'assistant' ? 'assistant' : 'user') as 'assistant' | 'user',
+              content: String(m.content || m.text || '').slice(0, 4000),
+            }));
+          const persona =
+            "Tu es DARK-GPT, un assistant IA francophone utile, clair et concis. " +
+            "Tu aides en programmation, en cybersécurité défensive et pédagogique, et en culture générale. " +
+            "Réponds directement à la demande. Fournis du code dans des blocs ``` quand c'est pertinent.";
+          const freeText = await generateText(convo, persona);
+          if (freeText) {
+            generatedText = freeText;
+            activeModelUsed = 'Gratuit (Pollinations)';
+          }
+        } catch {
+          // Moteur gratuit indisponible (quota) : on retombe sur le repli ci-dessous.
         }
       }
 

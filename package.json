@@ -12,6 +12,7 @@
   "dependencies": {
     "@google/genai": "latest",
     "clsx": "^2.1.1",
+    "dotenv": "^18.0.1",
     "express": "^4.21.2",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.16.0",

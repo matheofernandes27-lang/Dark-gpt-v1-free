@@ -51,3 +51,7 @@ package-lock.json
 data/sessions/
 data/projects/
 dark-gpt-workspace/
+
+# Clés & secrets (dark-gpt)
+.env
+.env.local

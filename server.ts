@@ -954,46 +954,56 @@ Pour votre sécurité, cette action ne peut pas être exécutée automatiquement
               };
             });
 
-          try {
-            const modelToUse = currentConfig.model && currentConfig.model.startsWith('gemini')
-              ? currentConfig.model 
-              : 'gemini-3.6-flash';
-            activeModelUsed = modelToUse;
+          const modelToUse = currentConfig.model && currentConfig.model.startsWith('gemini')
+            ? currentConfig.model
+            : 'gemini-3.6-flash';
+          activeModelUsed = modelToUse;
 
-            const timeoutPromise = new Promise((_, reject) =>
-              setTimeout(() => reject(new Error("Timeout")), 10000)
-            );
+          // Essais automatiques : le free tier renvoie parfois 503/429 (forte demande).
+          for (let attempt = 1; attempt <= 3 && !generatedText; attempt++) {
+            try {
+              const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Timeout")), 15000)
+              );
 
-            const resultPromise = gemini.models.generateContent({
-              model: modelToUse,
-              contents: contents.length > 0 ? contents : [{ role: 'user', parts: [{ text: userPrompt }] }],
-              config: {
-                systemInstruction: {
-                  parts: [{ text: effectiveSystemPrompt }]
-                },
-                temperature: 0.3,
-                maxOutputTokens: 1400,
-                safetySettings: [
-                  { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-                  { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-                  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-                  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-                  { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' },
-                ] as any
+              const resultPromise = gemini.models.generateContent({
+                model: modelToUse,
+                contents: contents.length > 0 ? contents : [{ role: 'user', parts: [{ text: userPrompt }] }],
+                config: {
+                  systemInstruction: {
+                    parts: [{ text: effectiveSystemPrompt }]
+                  },
+                  temperature: 0.3,
+                  maxOutputTokens: 1400,
+                  safetySettings: [
+                    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+                    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+                    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+                    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+                    { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' },
+                  ] as any
+                }
+              });
+
+              const result: any = await Promise.race([resultPromise, timeoutPromise]);
+              if (result && result.text) {
+                const rawText = result.text.trim();
+                const isRefusal = /sorry.*cannot fulfill|cannot fulfill your request|i cannot assist with.*hack|i cannot generate content that|i am unable to help with|search online for authorized penetration testing|cannot provide instructions on how to hack/i.test(rawText);
+                if (!isRefusal) {
+                  generatedText = rawText;
+                }
               }
-            });
-
-            const result: any = await Promise.race([resultPromise, timeoutPromise]);
-            if (result && result.text) {
-              const rawText = result.text.trim();
-              const isRefusal = /sorry.*cannot fulfill|cannot fulfill your request|i cannot assist with.*hack|i cannot generate content that|i am unable to help with|search online for authorized penetration testing|cannot provide instructions on how to hack/i.test(rawText);
-              if (!isRefusal) {
-                generatedText = rawText;
+              break; // réponse reçue (ou refus) : on sort de la boucle
+            } catch (gemErr: any) {
+              const msg = gemErr?.message || String(gemErr);
+              const retriable = /\b503\b|\b429\b|UNAVAILABLE|high demand|overloaded|Timeout/i.test(msg);
+              if (retriable && attempt < 3) {
+                await new Promise((r) => setTimeout(r, 800 * attempt)); // backoff
+                continue;
               }
+              console.error('[GEMINI] échec:', msg);
+              activeModelUsed = 'DARK-GPT Engine';
             }
-          } catch (gemErr: any) {
-            console.error('[GEMINI] échec:', gemErr?.message || gemErr);
-            activeModelUsed = 'DARK-GPT Engine';
           }
         }
       }

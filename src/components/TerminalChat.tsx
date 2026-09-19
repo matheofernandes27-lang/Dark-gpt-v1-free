@@ -71,7 +71,9 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Typewriter streaming state & speed setting
-  const [typingSpeed, setTypingSpeed] = useState<'slow' | 'normal' | 'instant'>('slow');
+  // Affichage instantané par défaut (réponse complète d'un coup, comme Claude/ChatGPT).
+  // L'utilisateur peut repasser en "Lente"/"Normale" via le sélecteur Vitesse s'il veut l'effet machine à écrire.
+  const [typingSpeed, setTypingSpeed] = useState<'slow' | 'normal' | 'instant'>('instant');
   const [activeModel, setActiveModel] = useState<string>('🐬 dolphin3 (Ollama)');
   const [showOllamaModal, setShowOllamaModal] = useState<boolean>(false);
   const [showMacModal, setShowMacModal] = useState<boolean>(false);

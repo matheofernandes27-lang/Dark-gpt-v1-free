@@ -26,6 +26,7 @@ import { Router, type Request, type Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { GoogleGenAI, Type } from '@google/genai';
 import { generateImage, listImageProviders } from './imagePlugins.ts';
 
 // ------------------------------------------------------------------ Périmètre
@@ -204,21 +205,29 @@ function recursiveGrepList(dir: string, out: string[] = [], depth = 0): string[]
   return out;
 }
 
-/**
- * PROPOSE — l'IA propose une action modifiante ; renvoie un nonce à valider par l'humain.
- * Aucun effet sur le disque à ce stade.
- */
-coworkRouter.post('/propose', (req: Request, res: Response) => {
-  const { tool, taskId = 'default', path: relPath, content, search, replace, expectedOldHash, imagePrompt, imageProvider } = req.body || {};
+type ProposeInput = {
+  tool: string;
+  taskId?: string;
+  path?: string;
+  content?: string;
+  search?: string;
+  replace?: string;
+  expectedOldHash?: string;
+  imagePrompt?: string;
+  imageProvider?: string;
+};
+type ProposeResult = { error?: string; code?: number; actionId?: string; nonce?: string; tool?: string; preview?: any };
+
+/** Crée un manifeste d'action en attente (sans effet disque) + renvoie son nonce. */
+function proposeAction(p: ProposeInput): ProposeResult {
+  const { tool, taskId = 'default', path: relPath, content, search, replace, expectedOldHash, imagePrompt, imageProvider } = p;
 
   if (!['write_file', 'file_modify', 'image_generate'].includes(tool)) {
-    return res.status(400).json({ error: 'Outil non modifiant : utilisez /view ou /search.' });
+    return { code: 400, error: 'Outil non modifiant : utilisez view_file ou search_grep.' };
   }
-
-  // Disjoncteur anti-boucle.
   const count = taskCounters.get(taskId) || 0;
   if (count >= 5) {
-    return res.status(429).json({ error: 'Disjoncteur : 5 actions atteintes pour cette tâche. Re-validation manuelle requise.' });
+    return { code: 429, error: 'Disjoncteur : 5 actions atteintes pour cette tâche. Re-validation manuelle requise.' };
   }
 
   const id = crypto.randomUUID();
@@ -226,31 +235,23 @@ coworkRouter.post('/propose', (req: Request, res: Response) => {
   let manifest: ActionManifest;
 
   if (tool === 'write_file' || tool === 'file_modify') {
-    const full = resolveInRoot(relPath);
-    if (!full) return res.status(403).json({ error: 'Chemin hors du dossier de travail (bloqué).' });
+    const full = resolveInRoot(relPath || '');
+    if (!full) return { code: 403, error: 'Chemin hors du dossier de travail (bloqué).' };
     if (tool === 'file_modify') {
-      if (!fs.existsSync(full)) return res.status(404).json({ error: 'Fichier à modifier introuvable.' });
-      if (!search) return res.status(400).json({ error: 'file_modify exige un bloc "search".' });
+      if (!fs.existsSync(full)) return { code: 404, error: 'Fichier à modifier introuvable.' };
+      if (!search) return { code: 400, error: 'file_modify exige un bloc "search".' };
     }
     const seed = tool === 'file_modify' ? `${search}=>${replace}` : String(content ?? '');
-    manifest = {
-      id, nonce, tool, taskId, targetPath: full,
-      content, search, replace, expectedOldHash,
-      payloadHash: sha256(seed), createdAt: Date.now(),
-    };
+    manifest = { id, nonce, tool: tool as ToolType, taskId, targetPath: full, content, search, replace, expectedOldHash, payloadHash: sha256(seed), createdAt: Date.now() };
   } else {
-    // image_generate
     if (!imagePrompt || !String(imagePrompt).trim()) {
-      return res.status(400).json({ error: 'image_generate exige un "imagePrompt".' });
+      return { code: 400, error: 'image_generate exige un "imagePrompt".' };
     }
-    manifest = {
-      id, nonce, tool, taskId, imagePrompt, imageProvider,
-      payloadHash: sha256(String(imagePrompt)), createdAt: Date.now(),
-    };
+    manifest = { id, nonce, tool: tool as ToolType, taskId, imagePrompt, imageProvider, payloadHash: sha256(String(imagePrompt)), createdAt: Date.now() };
   }
 
   pending.set(id, manifest);
-  res.json({
+  return {
     actionId: id,
     nonce,
     tool,
@@ -259,9 +260,18 @@ coworkRouter.post('/propose', (req: Request, res: Response) => {
       imagePrompt: manifest.imagePrompt,
       search: manifest.search,
       replace: manifest.replace,
+      content: manifest.content,
     },
-    message: 'Action en attente de votre validation (POST /execute avec approved:true).',
-  });
+  };
+}
+
+/**
+ * PROPOSE — l'IA propose une action modifiante ; renvoie un nonce à valider par l'humain.
+ */
+coworkRouter.post('/propose', (req: Request, res: Response) => {
+  const result = proposeAction(req.body || {});
+  if (result.error) return res.status(result.code || 400).json({ error: result.error });
+  res.json({ ...result, message: 'Action en attente de votre validation (POST /execute avec approved:true).' });
 });
 
 /**
@@ -319,5 +329,128 @@ coworkRouter.post('/execute', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Outil non supporté.' });
   } catch (e: any) {
     return res.status(500).json({ error: e?.message || 'Erreur d’exécution.' });
+  }
+});
+
+/**
+ * CHAT AGENTIQUE — le cerveau "façon Claude Code".
+ * L'IA (Gemini) reçoit la demande + l'arborescence du dossier de travail, et renvoie :
+ *   - une réponse texte,
+ *   - un tableau d'actions proposées (write_file / file_modify / image_generate).
+ * Chaque action est transformée en manifeste à valider (nonce) → le front affiche
+ * des cartes d'autorisation, puis exécute via /execute. Rien n'est écrit sans ton clic.
+ */
+coworkRouter.post('/chat', async (req: Request, res: Response) => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return res.status(400).json({ error: 'Clé Gemini requise pour le Cowork agentique (ajoute GEMINI_API_KEY dans .env).' });
+  }
+  const { messages = [], taskId = 'cw-default' } = req.body || {};
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return res.status(400).json({ error: 'messages requis.' });
+  }
+
+  // Contexte : arborescence du dossier de travail (bornée).
+  const files = recursiveGrepList(ALLOWED_ROOT).slice(0, 60);
+
+  const persona =
+    "Tu es DARK-GPT COWORK, un agent de développement local façon Claude Code. " +
+    "Tu travailles UNIQUEMENT dans le dossier de travail de l'utilisateur (chemins relatifs). " +
+    "Tu proposes des actions sur les fichiers ; l'utilisateur validera chaque action. " +
+    "RÈGLES STRICTES POUR LES ACTIONS :\n" +
+    "- write_file : crée/écrit un fichier. Tu DOIS mettre le CONTENU COMPLET du fichier dans le champ 'content' (jamais vide). Laisse 'search' et 'replace' vides. Renseigne 'path'.\n" +
+    "- file_modify : modifie un fichier existant. Mets dans 'search' un extrait EXACT du fichier actuel et dans 'replace' le nouveau texte. Laisse 'content' vide. Renseigne 'path'.\n" +
+    "- image_generate : mets la description dans 'imagePrompt'.\n" +
+    "Réponds toujours par un court texte 'reply' expliquant ce que tu fais, puis liste les actions. " +
+    "Si l'utilisateur demande du code ou un fichier, tu DOIS fournir une action write_file avec le 'content' réellement rempli. " +
+    "Ne propose que des actions utiles. " +
+    `Fichiers actuels du dossier de travail : ${files.length ? files.join(', ') : '(vide)'}.`;
+
+  const contents = messages
+    .filter((m: any) => m.role !== 'system')
+    .slice(-10)
+    .map((m: any) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: String(m.content || '').slice(0, 6000) }],
+    }));
+
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    const genConfig = {
+      model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
+      contents,
+      config: {
+        systemInstruction: { parts: [{ text: persona }] },
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            reply: { type: Type.STRING },
+            actions: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  tool: { type: Type.STRING, description: 'write_file | file_modify | image_generate' },
+                  path: { type: Type.STRING, description: 'chemin relatif dans le dossier de travail' },
+                  content: { type: Type.STRING, description: 'contenu complet (write_file)' },
+                  search: { type: Type.STRING, description: 'bloc exact à remplacer (file_modify)' },
+                  replace: { type: Type.STRING, description: 'nouveau bloc (file_modify)' },
+                  imagePrompt: { type: Type.STRING, description: 'description de l’image (image_generate)' },
+                },
+                required: ['tool'],
+                propertyOrdering: ['tool', 'path', 'content', 'search', 'replace', 'imagePrompt'],
+              },
+            },
+          },
+          required: ['reply'],
+        },
+        temperature: 0.4,
+        maxOutputTokens: 4000,
+      },
+    };
+
+    // Essais automatiques contre les 503/429 (forte demande).
+    let result: any = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        result = await ai.models.generateContent(genConfig as any);
+        break;
+      } catch (e: any) {
+        const msg = e?.message || String(e);
+        if (/\b503\b|\b429\b|UNAVAILABLE|high demand|overloaded/i.test(msg) && attempt < 3) {
+          await new Promise((r) => setTimeout(r, 900 * attempt));
+          continue;
+        }
+        throw e;
+      }
+    }
+
+    const data = JSON.parse(result.text || '{}');
+    const reply: string = data.reply || '';
+    const rawActions: any[] = Array.isArray(data.actions) ? data.actions : [];
+
+    // Transforme chaque action en manifeste à valider.
+    const actions: any[] = [];
+    for (const a of rawActions) {
+      const r = proposeAction({
+        tool: a.tool,
+        taskId,
+        path: a.path,
+        content: a.content,
+        search: a.search,
+        replace: a.replace,
+        imagePrompt: a.imagePrompt,
+      });
+      if (!r.error) {
+        actions.push({ actionId: r.actionId, nonce: r.nonce, tool: r.tool, preview: r.preview });
+      } else {
+        actions.push({ error: r.error, tool: a.tool, preview: { target: a.path, imagePrompt: a.imagePrompt } });
+      }
+    }
+
+    return res.json({ reply, actions });
+  } catch (e: any) {
+    return res.status(500).json({ error: e?.message || 'Erreur du cerveau Cowork.' });
   }
 });

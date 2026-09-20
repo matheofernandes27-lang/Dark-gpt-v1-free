@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, ImagePlus, Sun, Moon, Terminal as TerminalIcon, Loader2, Copy, Check } from 'lucide-react';
+import { Send, ImagePlus, Sun, Moon, Terminal as TerminalIcon, Loader2, Copy, Check, Wrench } from 'lucide-react';
 import { Artifact } from '../types.ts';
 import { ArtifactPanel } from './ArtifactPanel.tsx';
+import { CoworkActionsPanel, CoworkAction } from './CoworkActionsPanel.tsx';
 
 interface MinimalChatProps {
   onExit: () => void;
@@ -29,6 +30,9 @@ export const MinimalChat: React.FC<MinimalChatProps> = ({ onExit }) => {
   const [busy, setBusy] = useState(false);
   const [artifact, setArtifact] = useState<Artifact | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [coworkMode, setCoworkMode] = useState(false);
+  const [coworkActions, setCoworkActions] = useState<CoworkAction[]>([]);
+  const coworkTaskId = useRef('cw-' + Math.random().toString(36).slice(2, 8));
   const endRef = useRef<HTMLDivElement>(null);
 
   const isLight = lum === 'light';
@@ -65,6 +69,27 @@ export const MinimalChat: React.FC<MinimalChatProps> = ({ onExit }) => {
     setInput('');
     setBusy(true);
     try {
+      if (coworkMode) {
+        // Mode Cowork : l'agent planifie des actions sur les fichiers (à valider).
+        const res = await fetch('/api/cowork/agent/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: history.map((m) => ({ role: m.role, content: m.content })),
+            taskId: coworkTaskId.current,
+          }),
+        });
+        const data = await res.json();
+        const reply = data.reply || data.error || '(pas de réponse)';
+        setMessages((prev) => [
+          ...prev.filter((m) => m.id !== 'pending'),
+          { id: crypto.randomUUID(), role: 'assistant', content: reply },
+        ]);
+        if (Array.isArray(data.actions) && data.actions.length > 0) {
+          setCoworkActions(data.actions.map((a: CoworkAction) => ({ ...a, status: a.error ? 'failed' : 'pending' })));
+        }
+        return;
+      }
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -125,6 +150,30 @@ export const MinimalChat: React.FC<MinimalChatProps> = ({ onExit }) => {
     } catch { /* ignore */ }
   };
 
+  // Autoriser / refuser une action Cowork.
+  const resolveCowork = async (a: CoworkAction, approved: boolean) => {
+    if (!a.actionId || !a.nonce) return;
+    setCoworkActions((prev) => prev.map((x) => (x.actionId === a.actionId ? { ...x, status: approved ? 'running' : 'rejected' } : x)));
+    try {
+      const res = await fetch('/api/cowork/agent/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actionId: a.actionId, nonce: a.nonce, approved }),
+      });
+      const data = await res.json();
+      if (!approved) return;
+      setCoworkActions((prev) =>
+        prev.map((x) =>
+          x.actionId === a.actionId
+            ? { ...x, status: data.success ? 'done' : 'failed', result: data.output || data.error, image: data.dataUrl }
+            : x
+        )
+      );
+    } catch {
+      setCoworkActions((prev) => prev.map((x) => (x.actionId === a.actionId ? { ...x, status: 'failed', result: 'Erreur réseau' } : x)));
+    }
+  };
+
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -134,12 +183,20 @@ export const MinimalChat: React.FC<MinimalChatProps> = ({ onExit }) => {
 
   return (
     <div className="w-screen h-screen flex" style={{ backgroundColor: c.bg, color: c.text, fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
-      {/* Colonne chat */}
-      <div className={artifact?.isOpen ? 'w-1/2 h-full flex flex-col' : 'w-full h-full flex flex-col'}>
+      {/* Colonne chat (50% si un panneau est ouvert, 100% sinon) */}
+      <div className={coworkActions.length > 0 || artifact?.isOpen ? 'w-1/2 h-full flex flex-col' : 'w-full h-full flex flex-col'}>
         {/* Header discret */}
         <header className="flex items-center justify-between px-5 py-3 shrink-0" style={{ borderBottom: `1px solid ${c.border}` }}>
           <span className="text-sm font-semibold tracking-tight">dark-gpt</span>
           <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCoworkMode((v) => !v)}
+              title={coworkMode ? 'Cowork activé (l\'agent agit sur tes fichiers, avec validation)' : 'Activer le Cowork (agent sur tes fichiers)'}
+              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
+              style={coworkMode ? { backgroundColor: '#16a34a', color: '#fff' } : { color: c.sub, border: `1px solid ${c.border}` }}
+            >
+              <Wrench className="w-3.5 h-3.5" /> Cowork
+            </button>
             <button
               onClick={() => setLum(isLight ? 'dark' : 'light')}
               title={isLight ? 'Mode sombre' : 'Mode clair'}
@@ -251,12 +308,22 @@ export const MinimalChat: React.FC<MinimalChatProps> = ({ onExit }) => {
         </div>
       </div>
 
-      {/* Panneau Artifact */}
-      {artifact?.isOpen && (
+      {/* Panneau droit 50/50 : actions Cowork en priorité, sinon aperçu Artifact */}
+      {coworkActions.length > 0 ? (
+        <div className="w-1/2 h-full">
+          <CoworkActionsPanel
+            actions={coworkActions}
+            isLight={isLight}
+            onApprove={(a) => resolveCowork(a, true)}
+            onReject={(a) => resolveCowork(a, false)}
+            onClose={() => setCoworkActions([])}
+          />
+        </div>
+      ) : artifact?.isOpen ? (
         <div className="w-1/2 h-full">
           <ArtifactPanel artifact={artifact} activeMode="defense" onClose={() => setArtifact(null)} />
         </div>
-      )}
+      ) : null}
     </div>
   );
 };

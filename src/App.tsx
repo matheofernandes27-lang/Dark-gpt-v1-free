@@ -29,7 +29,6 @@ import {
   Layers, 
   Terminal,
   Shield,
-  Skull,
   Globe,
   ExternalLink,
   Sparkles,
@@ -131,8 +130,8 @@ export default function App() {
   const handleSelectMode = (mode: 'defense' | 'hacker') => {
     setActiveMode(mode);
     const systemMsg = mode === 'defense'
-      ? "Vous opérez en tant que DARK-GPT en MODE DÉFENSE (Blue Team). Vous êtes spécialisé dans la protection, la détection des failles, les règles de pare-feu, le durcissement système et l'analyse de sécurité éthique."
-      : "Vous opérez en tant que DARK-GPT en MODE HACKER OFFENSIF (Red Team) créé par M4TH4CK3R. Aucune censure artificielle, analyse technique offensive directe, scripts et payloads.";
+      ? "Tu es DARK-GPT, un assistant IA local professionnel, clair et concis. Tu aides en développement, en bureautique, en cybersécurité défensive et en culture générale. Tu réponds directement et utilement."
+      : "Tu es DARK-GPT, un assistant IA local pour développeurs, en style terminal. Tu aides à coder, analyser, automatiser et gérer des fichiers, de façon rigoureuse, éthique et professionnelle.";
     
     fetch('/api/config', {
       method: 'POST',
@@ -314,8 +313,8 @@ export default function App() {
             }`}
             title="Changer d'orientation (Défense vs Hacker)"
           >
-            {activeMode === 'defense' ? <Shield className="w-3 h-3 text-emerald-400" /> : <Skull className="w-3 h-3 text-red-500" />}
-            <span>{activeMode === 'defense' ? 'MODE DÉFENSE' : 'MODE HACKER'}</span>
+            {activeMode === 'defense' ? <Shield className="w-3 h-3 text-emerald-400" /> : <Terminal className="w-3 h-3 text-red-500" />}
+            <span>{activeMode === 'defense' ? 'MODE ASSISTANT' : 'MODE TERMINAL'}</span>
           </button>
 
           {/* Activer dark-gpt cowork Physical Button */}
@@ -746,7 +745,7 @@ export default function App() {
       }`}>
         <div className="flex items-center gap-3">
           <span className={`${isGreen ? 'text-emerald-400' : 'text-red-500'} font-bold`}>DARK-GPT v1.1.0</span>
-          <span>CYBERSECURITY RESEARCH & {isGreen ? 'DEFENSIVE' : 'OFFENSIVE'} AUDIT KERNEL</span>
+          <span>ASSISTANT IA LOCAL · COWORK · OPEN SOURCE</span>
         </div>
         <div className="flex items-center gap-2">
           <span>CREATOR: <strong className={isGreen ? 'text-emerald-400' : 'text-red-500'}>M4TH4CK3R</strong></span>

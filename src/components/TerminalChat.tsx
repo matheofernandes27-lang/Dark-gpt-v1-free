@@ -556,7 +556,7 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
             activeMode === 'defense' ? 'text-emerald-400' : 'text-red-500'
           }`}>
             {activeMode === 'defense' ? <Shield className="w-3.5 h-3.5 text-emerald-400" /> : <Skull className="w-3.5 h-3.5 text-red-500" />}
-            <span>{activeMode === 'defense' ? '[🛡️] DARK-GPT // ASSISTANCE GÉNÉRALE' : '[💀] DARK-GPT // APPRENTISSAGE TECHNIQUE AVANCÉ'}</span>
+            <span>{activeMode === 'defense' ? 'DARK-GPT // ASSISTANT' : '[x_x] DARK-GPT // TERMINAL'}</span>
           </span>
           <span className="text-neutral-400 hidden sm:inline text-xs">
             // {session.title}
@@ -801,7 +801,7 @@ export const TerminalChat: React.FC<TerminalChatProps> = ({
           isGreen ? 'border-emerald-900/60 bg-emerald-950/10' : 'border-red-900/60 bg-red-950/10'
         }`}>
           <div className={`font-bold ${isGreen ? 'text-emerald-400' : 'text-red-500'}`}>
-            {isGreen ? '[🛡️] SYSTÈME IA SÉCURISÉ // MODE DÉFENSE ACTIF' : '[!] SYSTÈME IA NON CENSURÉ // DARK-GPT v1.1.0'}
+            {isGreen ? 'DARK-GPT // Assistant IA local' : '[x_x] DARK-GPT // Assistant IA local v1.1.0'}
           </div>
           <div>Créé par <span className="text-white font-bold">M4TH4CK3R</span>. Analyse offensive/défensive approfondie, scripts et génération documentaire à la demande.</div>
           <div className="text-neutral-500 text-[11px]">Astuce : Appuyez sur <span className="text-white font-bold">Entrée</span> pour accélérer immédiatement la rédaction machine à écrire.</div>

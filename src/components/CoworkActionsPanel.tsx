@@ -126,7 +126,7 @@ export const CoworkActionsPanel: React.FC<CoworkActionsPanelProps> = ({ actions,
       </div>
 
       <div className="px-3 py-1.5 shrink-0 text-[9px] uppercase tracking-widest" style={{ borderTop: `1px solid ${c.border}`, color: c.sub }}>
-        Cowork confiné à ~/dark-gpt-workspace · validation humaine
+        Cowork confiné à ~/Bureau/matheo-ia · validation humaine
       </div>
     </div>
   );

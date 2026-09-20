@@ -41,7 +41,7 @@ export const AsciiBanner: React.FC<AsciiBannerProps> = ({ activeMode = 'hacker' 
       }`}>
         <span className={`font-bold flex items-center gap-1.5 ${isGreen ? 'text-emerald-400' : 'text-red-500'}`}>
           <span className={`inline-block w-2 h-2 rounded-full animate-pulse ${isGreen ? 'bg-emerald-400' : 'bg-red-600'}`}></span>
-          {isGreen ? '[🛡️] DARK-GPT // DÉFENSE' : '[x_x] DARK-GPT // OFFENSIF'}
+          {isGreen ? 'DARK-GPT // ASSISTANT' : '[x_x] DARK-GPT // TERMINAL'}
         </span>
         <span className="text-neutral-300 font-medium">LOCAL AI TERMINAL</span>
         <span className={`text-[10px] ${isGreen ? 'text-emerald-400' : 'text-red-500'}`}>v1.1.0</span>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Skull, ArrowRight, MessageSquare, PlusCircle, Globe, Terminal, Layout, RotateCcw, Info, Cpu, Sparkles } from 'lucide-react';
+import { Shield, ArrowRight, MessageSquare, PlusCircle, Globe, Terminal, Layout, RotateCcw, Info, Cpu, Sparkles } from 'lucide-react';
 import { Language, translations } from '../utils/i18n.ts';
 
 interface DualModeSelectorProps {
@@ -163,14 +163,12 @@ export const DualModeSelector: React.FC<DualModeSelectorProps> = ({
         <div 
           id="mode-advanced-learning-card"
           onClick={() => onSelectMode('hacker')}
-          className="group relative bg-black border-2 border-red-600 hover:border-red-400 rounded-lg p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 cursor-pointer shadow-[0_0_25px_rgba(239,68,68,0.25)] hover:shadow-[0_0_45px_rgba(239,68,68,0.5)] hover:-translate-y-1"
+          className="group relative bg-black border-2 border-red-700 hover:border-red-500 rounded-lg p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 cursor-pointer hover:-translate-y-1"
         >
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              {/* High-Definition Cyber/Skull Visual Container */}
-              <div className="relative p-2.5 bg-red-950/90 border border-red-500 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(239,68,68,0.4)]">
-                <Skull className="w-9 h-9 text-red-500 group-hover:scale-110 transition-transform" />
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-ping"></span>
+              <div className="relative p-2.5 bg-red-950/60 border border-red-800 rounded-lg flex items-center justify-center">
+                <Terminal className="w-9 h-9 text-red-500 group-hover:scale-110 transition-transform" />
               </div>
               <span className="text-[10px] uppercase font-bold tracking-widest px-2.5 py-1 bg-red-950 border border-red-700 text-red-300 rounded">
                 THÈME ROUGE / NOIR
@@ -191,19 +189,19 @@ export const DualModeSelector: React.FC<DualModeSelectorProps> = ({
             </p>
 
             <ul className="space-y-1.5 text-xs text-red-400 font-mono pt-2">
-              <li className="flex items-center gap-2">☠ Audits techniques approfondis & scripts système précis</li>
-              <li className="flex items-center gap-2">☠ Pentesting éthique, analyse réseau et mécanismes d'exploits</li>
-              <li className="flex items-center gap-2">☠ Exécution de scripts en bac à sable sécurisé</li>
+              <li className="flex items-center gap-2">› Développement, scripts et automatisation avancée</li>
+              <li className="flex items-center gap-2">› Cowork : accès à tes fichiers (avec validation)</li>
+              <li className="flex items-center gap-2">› Exécution en bac à sable sécurisé</li>
             </ul>
           </div>
 
           <div className="pt-6 mt-6 border-t border-red-900/60">
             <button
               type="button"
-              className="w-full py-3 bg-red-900 hover:bg-red-800 group-hover:bg-red-700 text-white font-bold border border-red-500 rounded flex items-center justify-center gap-2 text-xs tracking-wider uppercase transition-all shadow-[0_0_15px_rgba(220,38,38,0.4)]"
+              className="w-full py-3 bg-red-900 hover:bg-red-800 group-hover:bg-red-700 text-white font-bold border border-red-700 rounded flex items-center justify-center gap-2 text-xs tracking-wider uppercase transition-all"
             >
               <span>{t.advancedBtn}</span>
-              <Skull className="w-4 h-4 text-white group-hover:rotate-12 transition-transform" />
+              <ArrowRight className="w-4 h-4 text-white group-hover:translate-x-0.5 transition-transform" />
             </button>
           </div>
         </div>

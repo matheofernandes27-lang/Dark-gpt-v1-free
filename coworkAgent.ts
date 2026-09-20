@@ -30,7 +30,10 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { generateImage, listImageProviders } from './imagePlugins.ts';
 
 // ------------------------------------------------------------------ Périmètre
-export const ALLOWED_ROOT = path.resolve(path.join(process.env.HOME || '.', 'dark-gpt-workspace'));
+// Dossier de travail dédié sur le Bureau : ~/Desktop/matheo-ia (rien d'autre n'est touché).
+const HOME = process.env.HOME || '.';
+const DESKTOP = fs.existsSync(path.join(HOME, 'Desktop')) ? path.join(HOME, 'Desktop') : HOME;
+export const ALLOWED_ROOT = path.resolve(process.env.MATHEO_IA_ROOT || path.join(DESKTOP, 'matheo-ia'));
 if (!fs.existsSync(ALLOWED_ROOT)) {
   fs.mkdirSync(ALLOWED_ROOT, { recursive: true });
 }

@@ -28,6 +28,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { GoogleGenAI, Type } from '@google/genai';
 import { generateImage, listImageProviders } from './imagePlugins.ts';
+import { memoryContext } from './memory.ts';
 
 // ------------------------------------------------------------------ Périmètre
 // Dossier de travail dédié sur le Bureau : ~/Desktop/matheo-ia (rien d'autre n'est touché).
@@ -367,7 +368,8 @@ coworkRouter.post('/chat', async (req: Request, res: Response) => {
     "Réponds toujours par un court texte 'reply' expliquant ce que tu fais, puis liste les actions. " +
     "Si l'utilisateur demande du code ou un fichier, tu DOIS fournir une action write_file avec le 'content' réellement rempli. " +
     "Ne propose que des actions utiles. " +
-    `Fichiers actuels du dossier de travail : ${files.length ? files.join(', ') : '(vide)'}.`;
+    `Fichiers actuels du dossier de travail : ${files.length ? files.join(', ') : '(vide)'}.` +
+    (memoryContext() ? '\n\n' + memoryContext() : '');
 
   const contents = messages
     .filter((m: any) => m.role !== 'system')

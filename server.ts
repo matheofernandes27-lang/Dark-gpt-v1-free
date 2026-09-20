@@ -9,6 +9,7 @@ import { GoogleGenAI } from '@google/genai';
 import { coworkRouter } from './coworkAgent.ts';
 import { generateImage, listImageProviders } from './imagePlugins.ts';
 import { generateText } from './textProviders.ts';
+import { readMemory, addMemory, deleteMemory, clearMemory, memoryContext, extractMemoryRequest } from './memory.ts';
 
 const app = express();
 const PORT = 3000;
@@ -30,6 +31,15 @@ app.post('/api/images/generate', async (req, res) => {
     res.status(500).json({ success: false, error: e?.message || 'Échec génération image.' });
   }
 });
+
+// ==== Mémoire persistante (locale, façon Claude) ====
+app.get('/api/memory', (_req, res) => res.json({ facts: readMemory() }));
+app.post('/api/memory', (req, res) => {
+  const item = addMemory(req.body?.text || '');
+  res.json({ success: !!item, item });
+});
+app.delete('/api/memory/:id', (req, res) => res.json({ success: deleteMemory(req.params.id) }));
+app.delete('/api/memory', (_req, res) => { clearMemory(); res.json({ success: true }); });
 
 // Project Constants
 const APP_NAME = "Dark-gpt";
@@ -581,6 +591,14 @@ app.post('/api/chat', async (req, res) => {
 
     const lastMessage = messages[messages.length - 1];
     const userPrompt = lastMessage.content || '';
+
+    // Mémoire : demande explicite de mémorisation ("retiens que ...").
+    const memReq = extractMemoryRequest(userPrompt);
+    if (memReq) {
+      addMemory(memReq);
+      return res.json({ response: `C'est noté, je m'en souviendrai : « ${memReq} »`, deterministic: true });
+    }
+
     const normalizedPrompt = userPrompt.toLowerCase().trim();
     // Normalize accents and special characters
     const cleanPrompt = normalizedPrompt
@@ -777,7 +795,8 @@ Tu peux aussi cliquer sur le bouton [📂 FICHIERS MAC] dans le terminal de DARK
     // 2. INTENT CLASSIFICATION ENGINE (Strict Specification G & D)
     const { activeMode } = req.body;
     const mode = activeMode === 'defense' ? 'defense' : 'hacker';
-    const effectiveSystemPrompt = mode === 'defense' ? GENERAL_ASSISTANCE_PROMPT : ADVANCED_LEARNING_PROMPT;
+    const memBlock = memoryContext();
+    const effectiveSystemPrompt = (mode === 'defense' ? GENERAL_ASSISTANCE_PROMPT : ADVANCED_LEARNING_PROMPT) + (memBlock ? '\n\n' + memBlock : '');
 
     // A. Detect Risky Destructive Actions (Specification D)
     const isRiskyAction = 
@@ -1021,7 +1040,8 @@ Pour votre sécurité, cette action ne peut pas être exécutée automatiquement
           const persona =
             "Tu es DARK-GPT, un assistant IA francophone utile, clair et concis. " +
             "Tu aides en programmation, en cybersécurité défensive et pédagogique, et en culture générale. " +
-            "Réponds directement à la demande. Fournis du code dans des blocs ``` quand c'est pertinent.";
+            "Réponds directement à la demande. Fournis du code dans des blocs ``` quand c'est pertinent." +
+            (memBlock ? '\n\n' + memBlock : '');
           const freeText = await generateText(convo, persona);
           if (freeText) {
             generatedText = freeText;

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, ImagePlus, Sun, Moon, Terminal as TerminalIcon, Loader2, Copy, Check, Wrench } from 'lucide-react';
+import { Send, ImagePlus, Sun, Moon, Terminal as TerminalIcon, Loader2, Copy, Check, Wrench, SquarePen } from 'lucide-react';
 import { Artifact } from '../types.ts';
 import { ArtifactPanel } from './ArtifactPanel.tsx';
 import { CoworkActionsPanel, CoworkAction } from './CoworkActionsPanel.tsx';
@@ -23,9 +23,20 @@ interface Msg {
  * - Panneau Artifact (aperçu + code) qui se déploie quand du code est produit.
  * - Bascule clair/sombre purement esthétique.
  */
+const CHAT_STORAGE_KEY = 'darkgpt_minimal_chat_v1';
+
 export const MinimalChat: React.FC<MinimalChatProps> = ({ onExit }) => {
   const [lum, setLum] = useState<'light' | 'dark'>('light');
-  const [messages, setMessages] = useState<Msg[]>([]);
+  // Conversation persistante (restaurée au rechargement).
+  const [messages, setMessages] = useState<Msg[]>(() => {
+    try {
+      const raw = localStorage.getItem(CHAT_STORAGE_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch {
+      return [];
+    }
+  });
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [artifact, setArtifact] = useState<Artifact | null>(null);
@@ -44,6 +55,26 @@ export const MinimalChat: React.FC<MinimalChatProps> = ({ onExit }) => {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Sauvegarde la conversation (sans le message "en cours") pour la retrouver au rechargement.
+  useEffect(() => {
+    try {
+      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages.filter((m) => !m.pending)));
+    } catch {
+      /* stockage indisponible : on ignore */
+    }
+  }, [messages]);
+
+  const newConversation = () => {
+    setMessages([]);
+    setCoworkActions([]);
+    setArtifact(null);
+    try {
+      localStorage.removeItem(CHAT_STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const extractCodeBlock = (text: string): { code: string; language: string } | null => {
     const re = /```([a-zA-Z0-9]*)\n([\s\S]*?)```/g;
@@ -187,7 +218,17 @@ export const MinimalChat: React.FC<MinimalChatProps> = ({ onExit }) => {
       <div className={coworkActions.length > 0 || artifact?.isOpen ? 'w-1/2 h-full flex flex-col' : 'w-full h-full flex flex-col'}>
         {/* Header discret */}
         <header className="flex items-center justify-between px-5 py-3 shrink-0" style={{ borderBottom: `1px solid ${c.border}` }}>
-          <span className="text-sm font-semibold tracking-tight">dark-gpt</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold tracking-tight">dark-gpt</span>
+            <button
+              onClick={newConversation}
+              title="Nouvelle conversation"
+              className="p-1.5 rounded-lg transition-colors"
+              style={{ color: c.sub }}
+            >
+              <SquarePen className="w-4 h-4" />
+            </button>
+          </div>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setCoworkMode((v) => !v)}
